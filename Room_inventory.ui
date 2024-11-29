@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>RoomInventory</class>
+ <widget class="QMainWindow" name="RoomInventory">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>544</width>
+    <height>589</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>MainWindow</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <widget class="QTableWidget" name="Room_Table">
+    <property name="geometry">
+     <rect>
+      <x>100</x>
+      <y>60</y>
+      <width>311</width>
+      <height>300</height>
+     </rect>
+    </property>
+    <column>
+     <property name="text">
+      <string>Room No</string>
+     </property>
+    </column>
+    <column>
+     <property name="text">
+      <string>Room availability</string>
+     </property>
+    </column>
+    <column>
+     <property name="text">
+      <string>Booked by</string>
+     </property>
+    </column>
+    <column>
+     <property name="text">
+      <string>Capacity</string>
+     </property>
+    </column>
+   </widget>
+   <widget class="QPushButton" name="Update_Button">
+    <property name="geometry">
+     <rect>
+      <x>300</x>
+      <y>380</y>
+      <width>100</width>
+      <height>28</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Update A Room</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="Update_Button_2">
+    <property name="geometry">
+     <rect>
+      <x>190</x>
+      <y>380</y>
+      <width>100</width>
+      <height>28</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Time Slots</string>
+    </property>
+   </widget>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+  <widget class="QMenuBar" name="menuBar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>544</width>
+     <height>18</height>
+    </rect>
+   </property>
+  </widget>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
