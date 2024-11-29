@@ -1,7 +1,14 @@
 from PyQt6 import QtWidgets, uic
-from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QMessageBox
+from PyQt6.QtCore import Qt, QDate
+from PyQt6.QtWidgets import QMessageBox, QApplication, QMainWindow, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget, QHeaderView
 import sys
+import pyodbc
+
+#HAMZA
+# Replace these with your own database connection details
+server = 'DESKTOP-9QAGOMJ\SQLSERVER1'
+database = 'DbFinal'  # Name of your Northwind database
+use_windows_authentication = True  # Set to True to use Windows Authentication
 
 class UI(QtWidgets.QMainWindow):
     def __init__(self):
