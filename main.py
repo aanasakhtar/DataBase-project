@@ -239,8 +239,6 @@ class Members(QtWidgets.QMainWindow):
 
                 # Update the status in the table (for UI purposes)
                 self.Members_Table.item(selected_row, 3).setText("Inactive")
-                QtWidgets.QMessageBox.information(self, "Success", f"Member with ISBN {isbn} is now Inactive.")
-
             # Close the Members window after blocking
             self.close()
 
