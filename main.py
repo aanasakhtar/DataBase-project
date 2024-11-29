@@ -10,11 +10,10 @@ server = 'LAPTOP-N8UU3FAP\SQLSERVER1' #Zoraiz
 database = "DbFinal"
 connection_string = f'DRIVER={{ODBC Driver 17 for SQL Server}};SERVER={server};DATABASE={database};Trusted_Connection=yes'
 
-
 class UI(QtWidgets.QMainWindow):
     def __init__(self):
         # Call the inherited classes __init__ method
-        super().__init__() #
+        super().__init__() 
         # Load the .ui file
         uic.loadUi('Lab02.ui', self) # UIs here 
 
