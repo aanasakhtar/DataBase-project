@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
  <class>Members</class>
- <widget class="QMainWindow" name="Members">
+ <widget class="QMainWindow" name="Books">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -14,7 +14,7 @@
    <string>MainWindow</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <widget class="QTableWidget" name="Members_Table">
+   <widget class="QTableWidget" name="Books_Table">
     <property name="geometry">
      <rect>
       <x>40</x>
@@ -78,7 +78,7 @@
      <string>Book Inventory</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="pushButton">
+   <widget class="QPushButton" name="AddBook_Button">
     <property name="geometry">
      <rect>
       <x>470</x>
@@ -91,7 +91,7 @@
      <string>Add Book</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="pushButton_2">
+   <widget class="QPushButton" name="IssuedBooks_Button">
     <property name="geometry">
      <rect>
       <x>380</x>

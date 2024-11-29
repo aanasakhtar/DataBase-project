@@ -168,20 +168,22 @@ class Admin_or_Librarian(QtWidgets.QMainWindow):
         super().__init__() 
         uic.loadUi('Admin_or_Librarian.ui', self)
 
+        # To store same instances for future use
+        self.inventory_window = None
+        self.members_window = None
+
         # Connect buttons
         self.Inventory_Button.clicked.connect(self.open_inventory)
         self.Members_Button.clicked.connect(self.open_members)
 
     def open_inventory(self):
-        """Open the Inventories window."""
-        self.inventory_window = QtWidgets.QMainWindow()
-        uic.loadUi('Inventory.ui', self.inventory_window)
+        if self.inventory_window is None:
+            self.inventory_window = Inventory(self)
         self.inventory_window.show()
 
     def open_members(self):
-        """Open the Members window."""
-        self.members_window = QtWidgets.QMainWindow()
-        uic.loadUi('Members.ui', self.members_window)
+        if self.members_window is None:
+            self.members_window = Members(self)
         self.members_window.show()
 
 
@@ -190,17 +192,21 @@ class Inventory(QtWidgets.QMainWindow):
         super().__init__()
         uic.loadUi('Inventory.ui', self)
 
+        # To store same instances for future use
+        self.room_inventory_window = None
+        self.book_inventory_window = None
+
         self.RoomInventory_Button.clicked.connect(self.open_room_inventory)
         self.BookInventory_Button.clicked.connect(self.open_book_inventory)
 
     def open_room_inventory(self):
-        self.room_inventory_window = QtWidgets.QMainWindow()
-        uic.loadUi('Room_inventory.ui', self.room_inventory_window)
+        if self.room_inventory_window is None:
+            self.room_inventory_window = Room_inventory(self)
         self.room_inventory_window.show()
 
     def open_book_inventory(self):
-        self.book_inventory_window = QtWidgets.QMainWindow()
-        uic.loadUi('book_inventory.ui', self.book_inventory_window)
+        if self.book_inventory_window is None:
+            self.book_inventory_window = Book_Inventory(self)
         self.book_inventory_window.show()
 
 
@@ -214,12 +220,15 @@ class Room_inventory(QtWidgets.QMainWindow):
         self.update_button = self.findChild(QtWidgets.QPushButton, 'Update_Button')
         self.time_slots_button = self.findChild(QtWidgets.QPushButton, 'TimeSlots_Button')
 
+        # To store same instances for future use
+        self.time_slots_window = None
+
         # Connect button clicks to their respective methods
         self.update_button.clicked.connect(self.update_room)
         self.time_slots_button.clicked.connect(self.open_time_slots)
 
     def update_room(self):
-        """Update the room's availability and clear the 'BookedBy' field."""
+        # Update the room's availability and clear the 'BookedBy' field
         selected_row = self.room_table.currentRow()
         if selected_row != -1:
             # Get the room number and current availability
@@ -242,10 +251,82 @@ class Room_inventory(QtWidgets.QMainWindow):
 
 
     def open_time_slots(self):
-        """Open the Time Slots screen."""
-        self.time_slots_window = QtWidgets.QMainWindow()
-        uic.loadUi('TimeSlots.ui', self.time_slots_window)
-        self.time_slots_window.show()
+        # Check if the time_slots_window instance already exists
+        if self.time_slots_window is None:
+            # Create the TimeSlots window only once
+            self.time_slots_window = QtWidgets.QMainWindow()  # Create the window instance
+            uic.loadUi('TimeSlots.ui', self.time_slots_window)  # Load the UI
+        self.time_slots_window.show()  # Show the existing window
+
+
+
+class Book_Inventory(QtWidgets.QMainWindow):
+    def __init__(self):
+        super().__init__()
+        uic.loadUi('book_inventory.ui', self)
+
+        self.books_table = self.findChild(QtWidgets.QTableWidget, 'Books_Table')
+        self.add_book_button = self.findChild(QtWidgets.QPushButton, 'AddBook_Button')
+        self.issued_books_button = self.findChild(QtWidgets.QPushButton, 'IssuedBooks_Button')
+
+        self.issued_books_button.clicked.connect(self.show_issued_books)
+        self.add_book_button.clicked.connect(self.open_add_book_screen)
+
+        # To store same instances for future use
+        self.issued_books_window = None
+
+    def show_issued_books(self):
+        if self.issued_books_window is None:
+            self.issued_books_window = QtWidgets.QMainWindow()
+            uic.loadUi('IssuedBooks.ui', self.issued_books_window)
+        self.issued_books_window.show()
+
+    def open_add_book_screen(self):
+        self.add_book_window = AddBookScreen() # New instance each time
+        self.add_book_window.show()
+
+class AddBookScreen(QtWidgets.QMainWindow):
+    def __init__(self, librarian_id):
+        super().__init__()
+        uic.loadUi('AddBook.ui', self)
+
+        self.isbn_edit = self.findChild(QtWidgets.QLineEdit, 'Isbn_Edit')
+        self.title_edit = self.findChild(QtWidgets.QLineEdit, 'Title_Edit')
+        self.genre_combobox = self.findChild(QtWidgets.QComboBox, 'Genre_Combobox')
+        self.author_edit = self.findChild(QtWidgets.QLineEdit, 'Author_Edit')
+        self.confirm_button = self.findChild(QtWidgets.QPushButton, 'Confirm_Button')
+
+        # Store the librarian's ID for future use
+        self.librarian_id = librarian_id
+
+        self.confirm_button.clicked.connect(self.add_book_to_database)
+
+        # Populate Genre combobox
+        self.genre_combobox.addItems(["Programming","Fiction"])
+
+    def add_book_to_database(self):
+        # Get inputs from the form
+        isbn = self.isbn_edit.text()
+        title = self.title_edit.text()
+        genre = self.genre_combobox.currentText()
+        author = self.author_edit.text()
+
+        # Get the current librarian ID
+        librarian_id = self.librarian_id
+        
+        # Set initial values for rating and availability
+        rating = None # NULL value for rating
+        availability = 'Available'
+
+        query = """
+        INSERT INTO Books (isbn, title, genre, author, rating, added_by, availability)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """
+        values = (isbn, title, genre, author, rating, librarian_id, availability)
+
+        self.cursor.execute(query, values)
+        self.connection.commit()
+
 
 
 class Members(QtWidgets.QMainWindow):
