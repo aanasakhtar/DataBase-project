@@ -36,7 +36,7 @@
      <string>Book A Room</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="SeachIssue_Button">
+   <widget class="QPushButton" name="SearchIssue_Button">
     <property name="geometry">
      <rect>
       <x>60</x>
