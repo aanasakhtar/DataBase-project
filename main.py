@@ -10,6 +10,16 @@ server = 'LAPTOP-N8UU3FAP\SQLSERVER1' #Zoraiz
 database = "DbFinal"
 connection_string = f'DRIVER={{ODBC Driver 17 for SQL Server}};SERVER={server};DATABASE={database};Trusted_Connection=yes'
 
+#server = 'DESKTOP-9QAGOMJ\SQLSERVER1' # Hamza
+server = 'LAPTOP-N8UU3FAP\SQLSERVER1' # zoraiz
+database = "DbFinal"
+connection_string = f'DRIVER={{ODBC Driver 17 for SQL Server}};SERVER={server};DATABASE={database};Trusted_Connection=yes'
+
+
+
+# Replace these with your own database connection details
+
+>>>>>>> 97b0cfaec8632ce0964fb2ac43772e0b1252b631
 class UI(QtWidgets.QMainWindow):
     def __init__(self):
         # Call the inherited classes __init__ method
