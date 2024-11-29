@@ -4,6 +4,11 @@ from PyQt6.QtWidgets import QMessageBox, QApplication, QMainWindow, QTableWidget
 import sys
 import pyodbc
 
+# Anas's server
+server = "DESKTOP-CHMOJM3\SQLEXPRESS"
+database = "DbFinal"
+connection_string = f'DRIVER={{ODBC Driver 17 for SQL Server}};SERVER={server};DATABASE={database};Trusted_Connection=yes'
+
 #HAMZA
 # Replace these with your own database connection details
 server = 'DESKTOP-9QAGOMJ\SQLSERVER1'
