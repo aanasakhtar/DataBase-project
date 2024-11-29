@@ -206,6 +206,52 @@ class Inventory(QtWidgets.QMainWindow):
         uic.loadUi('book_inventory.ui', self.book_inventory_window)  # Load the BookInventory UI
         self.book_inventory_window.show()  # Show the BookInventory window
 
+
+class Room_inventory(QtWidgets.QMainWindow):
+    def __init__(self):
+        super().__init__()
+        uic.loadUi('Room_inventory.ui', self)  # Load the UI file
+
+        # Accessing widgets from the UI
+        self.room_table = self.findChild(QtWidgets.QTableWidget, 'Room_Table')
+        self.update_button = self.findChild(QtWidgets.QPushButton, 'Update_Button')
+        self.time_slots_button = self.findChild(QtWidgets.QPushButton, 'TimeSlots_Button')
+
+        # Connect button clicks to their respective methods
+        self.update_button.clicked.connect(self.update_room)
+        self.time_slots_button.clicked.connect(self.open_time_slots)
+
+    def update_room(self):
+        """Update the room's availability and clear the 'BookedBy' field."""
+        selected_row = self.room_table.currentRow()
+        if selected_row != -1:
+            # Get the room number and current availability
+            room_no = self.room_table.item(selected_row, 0).text()
+            availability = self.room_table.item(selected_row, 1).text()
+
+            if availability == "Booked":
+                # Update the room in the database
+                query = """
+                UPDATE Rooms
+                SET Availability = 'Available', BookedBy = NULL
+                WHERE RoomNo = ?
+                """
+                self.cursor.execute(query, room_no)
+                self.connection.commit()
+
+                # Update the table in the UI
+                self.room_table.item(selected_row, 1).setText("Available")
+                self.room_table.setItem(selected_row, 2, QtWidgets.QTableWidgetItem(""))
+
+
+    def open_time_slots(self):
+        """Open the Time Slots screen."""
+        self.time_slots_window = QtWidgets.QMainWindow()  # Create a new QMainWindow
+        uic.loadUi('TimeSlots.ui', self.time_slots_window)  # Load the Time Slots UI
+        self.time_slots_window.show()  # Show the Time Slots screen
+
+
+
 class Members(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()

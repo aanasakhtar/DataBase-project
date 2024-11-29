@@ -57,7 +57,7 @@
      <string>Update A Room</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="Update_Button_2">
+   <widget class="QPushButton" name="TimeSlots_Button">
     <property name="geometry">
      <rect>
       <x>190</x>
