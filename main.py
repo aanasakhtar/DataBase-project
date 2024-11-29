@@ -3,6 +3,10 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QMessageBox
 import sys
 
+
+# Replace these with your own database connection details
+server = 'LAPTOP-N8UU3FAP\SQLSERVER1'
+
 class UI(QtWidgets.QMainWindow):
     def __init__(self):
         # Call the inherited classes __init__ method
