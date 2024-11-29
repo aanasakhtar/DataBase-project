@@ -6,7 +6,7 @@ import sys
 class UI(QtWidgets.QMainWindow):
     def __init__(self):
         # Call the inherited classes __init__ method
-        super().__init__() 
+        super().__init__() #
         # Load the .ui file
         uic.loadUi('Lab02.ui', self) # UIs here 
 
