@@ -5,7 +5,7 @@ import sys
 import pyodbc
 
 # server = "DESKTOP-CHMOJM3\SQLEXPRESS" # Anas
-#server = 'DESKTOP-9QAGOMJ\SQLSERVER1' # Hamza
+# server = 'DESKTOP-9QAGOMJ\SQLSERVER1' # Hamza
 server = 'LAPTOP-N8UU3FAP\SQLSERVER1' #Zoraiz
 database = "DbFinal"
 connection_string = f'DRIVER={{ODBC Driver 17 for SQL Server}};SERVER={server};DATABASE={database};Trusted_Connection=yes'
@@ -161,7 +161,7 @@ class CreateAccount(QtWidgets.QMainWindow):
 
 
 
-
+############################################ MODULE 2 ################################################### 
 
 class Admin_or_Librarian(QtWidgets.QMainWindow):  
     def __init__(self):
@@ -174,43 +174,40 @@ class Admin_or_Librarian(QtWidgets.QMainWindow):
 
     def open_inventory(self):
         """Open the Inventories window."""
-        self.inventory_window = QtWidgets.QMainWindow()  # Create a new QMainWindow
-        uic.loadUi('Inventory.ui', self.inventory_window)  # Load the Inventories UI
-        self.inventory_window.show()  # Show the Inventories window
+        self.inventory_window = QtWidgets.QMainWindow()
+        uic.loadUi('Inventory.ui', self.inventory_window)
+        self.inventory_window.show()
 
     def open_members(self):
         """Open the Members window."""
-        self.members_window = QtWidgets.QMainWindow()  # Create a new QMainWindow
-        uic.loadUi('Members.ui', self.members_window)  # Load the Members UI
-        self.members_window.show()  # Show the Members window
+        self.members_window = QtWidgets.QMainWindow()
+        uic.loadUi('Members.ui', self.members_window)
+        self.members_window.show()
 
 
 class Inventory(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
-        uic.loadUi('Inventory.ui', self)  # Load the Inventories UI
+        uic.loadUi('Inventory.ui', self)
 
-        # Connect buttons
         self.RoomInventory_Button.clicked.connect(self.open_room_inventory)
         self.BookInventory_Button.clicked.connect(self.open_book_inventory)
 
     def open_room_inventory(self):
-        """Open the RoomInventory window."""
-        self.room_inventory_window = QtWidgets.QMainWindow()  # Create a new QMainWindow
-        uic.loadUi('Room_inventory.ui', self.room_inventory_window)  # Load the RoomInventory UI
-        self.room_inventory_window.show()  # Show the RoomInventory window
+        self.room_inventory_window = QtWidgets.QMainWindow()
+        uic.loadUi('Room_inventory.ui', self.room_inventory_window)
+        self.room_inventory_window.show()
 
     def open_book_inventory(self):
-        """Open the BookInventory window."""
-        self.book_inventory_window = QtWidgets.QMainWindow()  # Create a new QMainWindow
-        uic.loadUi('book_inventory.ui', self.book_inventory_window)  # Load the BookInventory UI
-        self.book_inventory_window.show()  # Show the BookInventory window
+        self.book_inventory_window = QtWidgets.QMainWindow()
+        uic.loadUi('book_inventory.ui', self.book_inventory_window)
+        self.book_inventory_window.show()
 
 
 class Room_inventory(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
-        uic.loadUi('Room_inventory.ui', self)  # Load the UI file
+        uic.loadUi('Room_inventory.ui', self)
 
         # Accessing widgets from the UI
         self.room_table = self.findChild(QtWidgets.QTableWidget, 'Room_Table')
@@ -246,47 +243,35 @@ class Room_inventory(QtWidgets.QMainWindow):
 
     def open_time_slots(self):
         """Open the Time Slots screen."""
-        self.time_slots_window = QtWidgets.QMainWindow()  # Create a new QMainWindow
-        uic.loadUi('TimeSlots.ui', self.time_slots_window)  # Load the Time Slots UI
-        self.time_slots_window.show()  # Show the Time Slots screen
-
+        self.time_slots_window = QtWidgets.QMainWindow()
+        uic.loadUi('TimeSlots.ui', self.time_slots_window)
+        self.time_slots_window.show()
 
 
 class Members(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
-        uic.loadUi('Members.ui', self)  # Load the Members UI
+        uic.loadUi('Members.ui', self)
 
-        # Connect buttons
         self.BlockButton.clicked.connect(self.block_member)
-
-        # Database connection string (adjust this according to your database)
-        self.conn = pyodbc.connect('DRIVER={SQL Server};'
-                                   'SERVER=your_server_name;'
-                                   'DATABASE=your_database_name;'
-                                   'UID=your_username;'
-                                   'PWD=your_password')
-        self.cursor = self.conn.cursor()
 
     def block_member(self):
         """Block the selected member by changing their status to 'Inactive' and close the window."""
-        selected_row = self.Members_Table.currentRow()  # Get the selected row in the table
+        selected_row = self.Members_Table.currentRow()
 
-        if selected_row != -1:  # Check if a row is selected
-            # Get the ISBN of the selected member from the first column (assuming it's the ISBN)
+        if selected_row != -1: # If a row is selected
+            # ISBN is used as unique identification for query
             isbn = self.Members_Table.item(selected_row, 0).text()
-            current_status = self.Members_Table.item(selected_row, 3).text()  # Status is in the 4th column (index 3)
+            current_status = self.Members_Table.item(selected_row, 3).text()
 
-            if current_status != "Inactive":  # Check if the member is not already inactive
-                # SQL query to update the status of the member to 'Inactive'
+            if current_status != "Inactive":
+                # Update the status of member to 'Inactive' in database
                 query = "UPDATE Members SET Status = ? WHERE ISBN = ?"
                 self.cursor.execute(query, ('Inactive', isbn))
                 self.conn.commit()  # Commit the transaction
 
-                # Update the status in the table (for UI purposes)
+                # Update the status in UI purposes
                 self.Members_Table.item(selected_row, 3).setText("Inactive")
-            # Close the Members window after blocking
-            self.close()
 
 #CUSTOMER SCREENN!!!!!
     # Connect buttons
