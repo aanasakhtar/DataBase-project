@@ -6,20 +6,13 @@ import pyodbc
 
 # server = "DESKTOP-CHMOJM3\SQLEXPRESS" # Anas
 server = 'DESKTOP-9QAGOMJ\SQLSERVER1' # Hamza
-server = 'LAPTOP-N8UU3FAP\SQLSERVER1' #Zoraiz
-database = "DbFinal"
-connection_string = f'DRIVER={{ODBC Driver 17 for SQL Server}};SERVER={server};DATABASE={database};Trusted_Connection=yes'
-
-#server = 'DESKTOP-9QAGOMJ\SQLSERVER1' # Hamza
-server = 'LAPTOP-N8UU3FAP\SQLSERVER1' # zoraiz
+# server = 'LAPTOP-N8UU3FAP\SQLSERVER1' #Zoraiz
 database = "DbFinal"
 connection_string = f'DRIVER={{ODBC Driver 17 for SQL Server}};SERVER={server};DATABASE={database};Trusted_Connection=yes'
 
 
 
 # Replace these with your own database connection details
-
->>>>>>> 97b0cfaec8632ce0964fb2ac43772e0b1252b631
 class UI(QtWidgets.QMainWindow):
     def __init__(self):
         # Call the inherited classes __init__ method
@@ -132,7 +125,31 @@ class UI(QtWidgets.QMainWindow):
 
     def close(self):
         QtWidgets.QApplication.quit()
-            
+
+
+class Admin_or_Librarian(QtWidgets.QMainWindow):  
+    def __init__(self):
+        super().__init__() 
+        uic.loadUi('Admin_or_Librarian.ui', self)
+
+        # Connect buttons
+        self.Inventory_Button.clicked.connect(self.open_inventory)
+        self.Members_Button.clicked.connect(self.open_members)
+
+    def open_inventory(self):
+        """Open the Inventories window."""
+        self.inventory_window = QtWidgets.QMainWindow()  # Create a new QMainWindow
+        uic.loadUi('Inventories.ui', self.inventory_window)  # Load the Inventories UI
+        self.inventory_window.show()  # Show the Inventories window
+
+    def open_members(self):
+        """Open the Members window."""
+        self.members_window = QtWidgets.QMainWindow()  # Create a new QMainWindow
+        uic.loadUi('Members.ui', self.members_window)  # Load the Members UI
+        self.members_window.show()  # Show the Members window
+
+        
+
 
 class ViewBook(QtWidgets.QMainWindow):  
     def __init__(self, isbn,title,category,type,issuance):

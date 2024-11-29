@@ -14,7 +14,7 @@
    <string>MainWindow</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <widget class="QPushButton" name="Inventory_Button">
+   <widget class="QPushButton" name="BookInventory_Button">
     <property name="geometry">
      <rect>
       <x>60</x>
@@ -36,7 +36,7 @@
      <string>Book Inventory</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="Members_Button">
+   <widget class="QPushButton" name="RoomInventory_Button">
     <property name="geometry">
      <rect>
       <x>340</x>
