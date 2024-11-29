@@ -6,13 +6,10 @@ import pyodbc
 
 # server = "DESKTOP-CHMOJM3\SQLEXPRESS" # Anas
 server = 'DESKTOP-9QAGOMJ\SQLSERVER1' # Hamza
+server = 'LAPTOP-N8UU3FAP\SQLSERVER1' #Zoraiz
 database = "DbFinal"
 connection_string = f'DRIVER={{ODBC Driver 17 for SQL Server}};SERVER={server};DATABASE={database};Trusted_Connection=yes'
 
-
-
-# Replace these with your own database connection details
-server = 'LAPTOP-N8UU3FAP\SQLSERVER1'
 
 class UI(QtWidgets.QMainWindow):
     def __init__(self):
