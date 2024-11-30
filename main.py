@@ -210,7 +210,7 @@ class Admin_or_Librarian(QtWidgets.QMainWindow):
         if self.members_window is None:
             self.members_window = Members(self)
         self.members_window.show()
-
+    
 
 class Inventory(QtWidgets.QMainWindow):
     def __init__(self):
@@ -387,12 +387,17 @@ class MemberScreen(QtWidgets.QMainWindow):
         super().__init__()
         uic.loadUi('Member_or_customer.ui', self)
         self.SearchIssue_Button.clicked.connect(lambda: self.openSearchScreen(username))
-        self.BookRoom_Button.clicked.connect(lambda: self.openBookARoomScreen)
+        self.BookRoom_Button.clicked.connect(lambda: self.openBookARoom())
     def openSearchScreen(self, username):
         self.searchScreen = SearchScreen(username)
         self.searchScreen.show()
-    def openBookARoomScreen():
-        pass
+    
+    def openBookARoom(self):
+        """Open the BookARoom screen."""
+        self.bookARoomWindow = BookARoom()  # Instantiate the BookARoom class
+        self.bookARoomWindow.show()  # Show the BookARoom screen
+        self.close()  # Optionally close the current SearchScreen if desired
+
 
 class SearchScreen(QtWidgets.QMainWindow):
     def __init__(self, username):
@@ -419,7 +424,7 @@ class SearchScreen(QtWidgets.QMainWindow):
                 self.BookTW.setItem(row_index, col_index, item)
 
         self.SearchPB.clicked.connect(self.search)
-        self.ViewPB.clicked.connect(self.view) # Yet to be completed (needs test)
+        self.ViewPB.clicked.connect(self.view) 
         self.RateABookPB.clicked.connect(lambda: self.rateABook) # Yet to be completed
 
         print(username)
@@ -493,6 +498,60 @@ class SearchScreen(QtWidgets.QMainWindow):
     def loggingOut(self):
         self.mainScreen = UI()
         self.mainScreen.show()
+
+class BookARoom(QtWidgets.QMainWindow):
+    def __init__(self):
+        super().__init__()
+        uic.loadUi("Book_a_room.ui", self)  # Load the UI for the "Book a Room" screen
+        
+        self.connection = pyodbc.connect(connection_string)
+        self.cursor = self.connection.cursor() 
+        self.populateAvailableRooms()
+        # Connect the "Confirm" button to the bookRoom method
+        self.pushButton.clicked.connect(self.bookRoom)
+    
+    def populateAvailableRooms(self):
+        """Fetch available rooms from the database and populate the ComboBox"""
+        query = """SELECT Room_No, Time_Slot 
+                FROM Rooms 
+                WHERE Room_Availability = 'Available'"""
+        self.cursor.execute(query)
+        
+        # Fetch all available rooms
+        available_rooms = self.cursor.fetchall()
+        
+        # Populate the combo box with available room numbers and their time slots
+        for room in available_rooms:
+            room_no, time_slot = room
+            self.comboBox.addItem(f"Room {room_no}: {time_slot}")
+
+    def bookRoom(self): #not complete
+        """Handle the booking logic when confirm button is clicked."""
+        
+        # Retrieve values from the form fields
+        room_no = self.lineEdit.text()  # Room No field
+        username = self.lineEdit_2.text()  # Username field
+        available_slot = self.comboBox.currentText()  # Available slot dropdown
+        count_of_people = self.spinBox.value()  # Number of people (from spinBox)
+
+        # You can add the logic to store this data into the database or any other processing you need
+        print(f"Room No: {room_no}, Username: {username}, Available Slot: {available_slot}, Count of People: {count_of_people}")
+        
+        # Example database insertion (make sure you have a database connection defined)
+        
+        self.cursor.execute("""
+                INSERT INTO Bookings (Member_ID, Room_No, Booking_Date, Booking_Time_Slot)
+                VALUES (?, ?, GETDATE(), ?)
+            """, (username, room_no, available_slot))
+
+        self.connection.commit()
+        
+        # Optionally, show a success message
+        show_message(self, "Booking Confirmed", "The room has been successfully booked!")
+        
+        # Close the current screen (optional, if you want to close the BookARoom screen)
+        self.close()
+
     
 
 
