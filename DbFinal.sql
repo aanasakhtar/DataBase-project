@@ -35,21 +35,23 @@ CREATE TABLE Issued_Books (
 );
 
 CREATE TABLE Rooms (
-    Room_No INT PRIMARY KEY,
-    Time_Slot NVARCHAR(50), -- For storing times like "09:00:00 to 10:00:00"
+    Room_No INT,                      -- First column of the composite key
+    Time_Slot NVARCHAR(50),           -- Second column of the composite key
     Room_Availability NVARCHAR(20),
-    Capacity INT
+    Capacity INT,
+    PRIMARY KEY (Room_No, Time_Slot)  -- Composite primary key
 );
 
 CREATE TABLE Bookings (
-    Member_ID INT,
-    Room_No INT,
+    Booking_ID INT IDENTITY PRIMARY KEY, -- Unique ID for each booking
+    Member_ID INT,                      -- Foreign key to Members table
+    Room_No INT,                        -- Foreign key part 1
+    Booking_Time_Slot NVARCHAR(50),     -- Foreign key part 2
     Booking_Date DATE,
-    Booking_Time_Slot NVARCHAR(50),
-    PRIMARY KEY (Member_ID, Room_No, Booking_Date, Booking_Time_Slot),
-    FOREIGN KEY (Member_ID) REFERENCES Member_Info(Member_ID),
-    FOREIGN KEY (Room_No) REFERENCES Rooms(Room_No)
+    FOREIGN KEY (Room_No, Booking_Time_Slot) 
+        REFERENCES Rooms (Room_No, Time_Slot) -- Reference composite key
 );
+
 
 -- Insert Library Staff
 SET IDENTITY_INSERT Library_Staff ON;
@@ -86,17 +88,66 @@ VALUES
 (103, 4, '2024-11-05', '2024-11-20', '2024-11-19'); -- Member_ID=103 and Book_ID=4 exist
 
 -- Insert Rooms
+-- Insert time slots with more "Booked" statuses
 INSERT INTO Rooms (Room_No, Time_Slot, Room_Availability, Capacity)
 VALUES 
 (101, '09:00:00 to 10:00:00', 'Available', 10),
+(101, '10:00:00 to 11:00:00', 'Booked', 10),
+(101, '11:00:00 to 12:00:00', 'Booked', 10),
+(101, '12:00:00 to 13:00:00', 'Booked', 10),
+(101, '13:00:00 to 14:00:00', 'Available', 10),
+(101, '14:00:00 to 15:00:00', 'Booked', 10),
+
+(102, '09:00:00 to 10:00:00', 'Booked', 8),
 (102, '10:00:00 to 11:00:00', 'Booked', 8),
-(103, '11:00:00 to 12:00:00', 'Available', 15),
-(104, '12:00:00 to 01:00:00', 'Available', 12),
-(105, '01:00:00 to 02:00:00', 'Booked', 10);
+(102, '11:00:00 to 12:00:00', 'Booked', 8),
+(102, '12:00:00 to 13:00:00', 'Booked', 8),
+(102, '13:00:00 to 14:00:00', 'Available', 8),
+(102, '14:00:00 to 15:00:00', 'Booked', 8),
+
+(103, '09:00:00 to 10:00:00', 'Available', 15),
+(103, '10:00:00 to 11:00:00', 'Available', 15),
+(103, '11:00:00 to 12:00:00', 'Booked', 15),
+(103, '12:00:00 to 13:00:00', 'Booked', 15),
+(103, '13:00:00 to 14:00:00', 'Booked', 15),
+(103, '14:00:00 to 15:00:00', 'Available', 15),
+
+(104, '09:00:00 to 10:00:00', 'Booked', 12),
+(104, '10:00:00 to 11:00:00', 'Booked', 12),
+(104, '11:00:00 to 12:00:00', 'Available', 12),
+(104, '12:00:00 to 13:00:00', 'Booked', 12),
+(104, '13:00:00 to 14:00:00', 'Booked', 12),
+(104, '14:00:00 to 15:00:00', 'Available', 12),
+
+(105, '09:00:00 to 10:00:00', 'Booked', 10),
+(105, '10:00:00 to 11:00:00', 'Booked', 10),
+(105, '11:00:00 to 12:00:00', 'Booked', 10),
+(105, '12:00:00 to 13:00:00', 'Booked', 10),
+(105, '13:00:00 to 14:00:00', 'Available', 10),
+(105, '14:00:00 to 15:00:00', 'Booked', 10);
+
 
 -- Insert Bookings
 -- Ensure that Member_ID and Room_No exist in the respective tables
+-- Insert new bookings for the "Booked" time slots
 INSERT INTO Bookings (Member_ID, Room_No, Booking_Date, Booking_Time_Slot)
 VALUES 
-(101, 102, '2024-11-01', '10:00:00 to 11:00:00'), -- Member_ID=101 and Room_No=102 exist
-(104, 105, '2024-11-05', '01:00:00 to 02:00:00'); -- Member_ID=104 and Room_No=105 exist
+(101, 101, '2024-11-01', '10:00:00 to 11:00:00'), -- Member 101 booked Room 101
+(102, 101, '2024-11-01', '11:00:00 to 12:00:00'), -- Member 102 booked Room 101
+(103, 101, '2024-11-01', '12:00:00 to 13:00:00'), -- Member 103 booked Room 101
+
+(104, 102, '2024-11-02', '09:00:00 to 10:00:00'), -- Member 104 booked Room 102
+(105, 102, '2024-11-02', '10:00:00 to 11:00:00'), -- Member 105 booked Room 102
+(106, 102, '2024-11-02', '11:00:00 to 12:00:00'), -- Member 106 booked Room 102
+
+(107, 103, '2024-11-03', '11:00:00 to 12:00:00'), -- Member 107 booked Room 103
+(108, 103, '2024-11-03', '12:00:00 to 13:00:00'), -- Member 108 booked Room 103
+(109, 103, '2024-11-03', '13:00:00 to 14:00:00'), -- Member 109 booked Room 103
+
+(110, 104, '2024-11-04', '09:00:00 to 10:00:00'), -- Member 110 booked Room 104
+(111, 104, '2024-11-04', '10:00:00 to 11:00:00'), -- Member 111 booked Room 104
+(112, 104, '2024-11-04', '12:00:00 to 13:00:00'), -- Member 112 booked Room 104
+
+(113, 105, '2024-11-05', '09:00:00 to 10:00:00'), -- Member 113 booked Room 105
+(114, 105, '2024-11-05', '10:00:00 to 11:00:00'), -- Member 114 booked Room 105
+(115, 105, '2024-11-05', '11:00:00 to 12:00:00'); -- Member 115 booked Room 105

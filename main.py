@@ -15,8 +15,8 @@ def show_message(parent, title, message):
 class DatabaseConnection:
     def __init__(self):
         # self.server = "DESKTOP-CHMOJM3\SQLEXPRESS" # Anas
-        self.server = 'DESKTOP-9QAGOMJ\SQLSERVER1' # Hamza
-        # self.server = 'LAPTOP-N8UU3FAP\\SQLSERVER1' #Zoraiz
+        # self.server = 'DESKTOP-9QAGOMJ\SQLSERVER1' # Hamza
+        self.server = 'LAPTOP-N8UU3FAP\\SQLSERVER1' #Zoraiz
         self.database = 'DbFinal'
         self.connection = None
         self.cursor = None
@@ -644,10 +644,9 @@ class SearchScreen(QtWidgets.QMainWindow):
         self.GenreF = self.findChild(QtWidgets.QComboBox, "GenreCB")
         self.AuthorF = self.findChild(QtWidgets.QLineEdit, "AuthorLE")
         self.GenreF.setCurrentText("")
-
-        self.connection = pyodbc.connect(connection_string)
-
-        self.cursor = self.connection.cursor()
+        
+        self.db = DatabaseConnection()
+        self.cursor = self.db.get_cursor()
 
         self.cursor = self.connection.cursor()
 
@@ -741,8 +740,8 @@ class BookARoom(QtWidgets.QMainWindow):
         super().__init__()
         uic.loadUi("Book_a_room.ui", self)  # Load the UI for the "Book a Room" screen
         
-        self.connection = pyodbc.connect(connection_string)
-        self.cursor = self.connection.cursor() 
+        self.db = DatabaseConnection()
+        self.cursor = self.db.get_cursor() 
         self.populateAvailableRooms()
         # Connect the "Confirm" button to the bookRoom method
         self.pushButton.clicked.connect(self.bookRoom)
