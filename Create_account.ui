@@ -95,7 +95,7 @@
    <widget class="QLabel" name="label_4">
     <property name="geometry">
      <rect>
-      <x>200</x>
+      <x>230</x>
       <y>40</y>
       <width>230</width>
       <height>40</height>
@@ -109,6 +109,19 @@
     </property>
     <property name="text">
      <string>Creating an account</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="submit">
+    <property name="geometry">
+     <rect>
+      <x>430</x>
+      <y>260</y>
+      <width>56</width>
+      <height>17</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Submit</string>
     </property>
    </widget>
   </widget>

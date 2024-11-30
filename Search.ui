@@ -14,7 +14,7 @@
    <string>MainWindow</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <widget class="QPushButton" name="pushButton">
+   <widget class="QPushButton" name="IssuePB">
     <property name="geometry">
      <rect>
       <x>170</x>
@@ -27,7 +27,7 @@
      <string>Issue</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="pushButton_2">
+   <widget class="QPushButton" name="ViewAllPB">
     <property name="geometry">
      <rect>
       <x>340</x>
@@ -40,7 +40,7 @@
      <string>ViewAll</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="pushButton_3">
+   <widget class="QPushButton" name="LogoutPB">
     <property name="geometry">
      <rect>
       <x>520</x>
@@ -53,7 +53,7 @@
      <string>Logout</string>
     </property>
    </widget>
-   <widget class="QTableWidget" name="tableWidget">
+   <widget class="QTableWidget" name="BookTW">
     <property name="geometry">
      <rect>
       <x>140</x>
@@ -93,7 +93,7 @@
      </property>
     </column>
    </widget>
-   <widget class="QPushButton" name="pushButton_4">
+   <widget class="QPushButton" name="SearchPB">
     <property name="geometry">
      <rect>
       <x>510</x>
@@ -106,7 +106,7 @@
      <string>Search</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="pushButton_5">
+   <widget class="QPushButton" name="ViewPB">
     <property name="geometry">
      <rect>
       <x>510</x>
@@ -119,7 +119,7 @@
      <string>View</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="pushButton_6">
+   <widget class="QPushButton" name="RateABookPB">
     <property name="geometry">
      <rect>
       <x>510</x>
@@ -144,7 +144,7 @@
     <property name="title">
      <string>Search</string>
     </property>
-    <widget class="QLineEdit" name="lineEdit">
+    <widget class="QLineEdit" name="TitleLE">
      <property name="geometry">
       <rect>
        <x>60</x>
@@ -154,7 +154,7 @@
       </rect>
      </property>
     </widget>
-    <widget class="QLineEdit" name="lineEdit_2">
+    <widget class="QLineEdit" name="AuthorLE">
      <property name="geometry">
       <rect>
        <x>60</x>
@@ -203,7 +203,7 @@
       <string>Author:</string>
      </property>
     </widget>
-    <widget class="QComboBox" name="comboBox">
+    <widget class="QComboBox" name="GenreCB">
      <property name="geometry">
       <rect>
        <x>60</x>
@@ -212,6 +212,26 @@
        <height>22</height>
       </rect>
      </property>
+     <item>
+      <property name="text">
+       <string>Sci-Fi</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Rom-Com</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Fiction</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Non-Fiction</string>
+      </property>
+     </item>
     </widget>
    </widget>
   </widget>

@@ -4,9 +4,9 @@ from PyQt6.QtWidgets import QMessageBox, QApplication, QMainWindow, QTableWidget
 import sys
 import pyodbc
 
-# server = "DESKTOP-CHMOJM3\SQLEXPRESS" # Anas
+server = "DESKTOP-CHMOJM3\SQLEXPRESS" # Anas
 # server = 'DESKTOP-9QAGOMJ\SQLSERVER1' # Hamza
-server = 'LAPTOP-N8UU3FAP\\SQLSERVER1' #Zoraiz
+# server = 'LAPTOP-N8UU3FAP\\SQLSERVER1' #Zoraiz
 database = "DbFinal"
 connection_string = f'DRIVER={{ODBC Driver 17 for SQL Server}};SERVER={server};DATABASE={database};Trusted_Connection=yes'
 
@@ -35,19 +35,24 @@ class UI(QtWidgets.QMainWindow):
        self.creatingAcc.show()
 
     def open_sign_in(self):
-        pass
+        self.signIn = SignIn()
+        self.signIn.show()
 
 
             
 class CreateAccount(QtWidgets.QMainWindow):  
-    def _init_(self):
-        super()._init_() 
+    def __init__(self):
+        super().__init__() 
         # Load the .ui file
         uic.loadUi('Create_account.ui', self)
+        self.resize(600, 400)
 
         self.usernameF = self.findChild(QtWidgets.QLineEdit, "Username")
         self.passwordF = self.findChild(QtWidgets.QLineEdit, "password")
         self.cPasswordF = self.findChild(QtWidgets.QLineEdit, "c_password")
+        self.passwordF.setEchoMode(QtWidgets.QLineEdit.EchoMode.Password)
+        self.cPasswordF.setEchoMode(QtWidgets.QLineEdit.EchoMode.Password)
+        
         self.submitBtn = self.findChild(QtWidgets.QPushButton, "submit")
 
         self.submitBtn.clicked.connect(self.create_account)
@@ -111,15 +116,21 @@ class CreateAccount(QtWidgets.QMainWindow):
 
 class SignIn(QtWidgets.QMainWindow):
     def __init__(self):
-        super()._init_() 
+        super().__init__() 
         # Load the .ui file
         uic.loadUi('Sign_in.ui', self)
-        username = self.findChild(QtWidgets.QTextEdit, "Enter_Username_Edit")
-        password = self.findChild(QtWidgets.QTextEdit, "Enter_Password_Edit")
-        if "." in username:
-            self.signInBtn.clicked.connect(self.signInAsLibrarian(username, password))
+        self.usernameF = self.findChild(QtWidgets.QLineEdit, "Enter_Username_Edit")
+        self.passwordF = self.findChild(QtWidgets.QLineEdit, "Enter_Password_Edit")
+        self.passwordF.setEchoMode(QtWidgets.QLineEdit.EchoMode.Password)
+        self.signinBtn.clicked.connect(self.signin)
+
+    def signin(self):
+        self.username = self.usernameF.text()
+        self.password = self.passwordF.text()
+        if "." in self.username:
+            self.signInAsLibrarian(self.username, self.password)
         else:
-            self.signInBtn.clicked.connect(self.signInAsMember(username, password))
+            self.signInAsMember(self.username, self.password)
     def signInAsLibrarian(self, username, password):
         # Database connection
         connection = pyodbc.connect(connection_string)
@@ -134,12 +145,13 @@ class SignIn(QtWidgets.QMainWindow):
 
         cursor.execute(sql_query, (username))
         result = cursor.fetchone()
-        if password != result[0]:
-            show_message(self, "Error", "Incorrect Password")
-            return
         if result is None:
             show_message(self, "Error", "No username found")
             return
+        if password != result[0]:
+            show_message(self, "Error", "Incorrect Password")
+            return
+
         self.openLibrarianScreen()
     def openLibrarianScreen(self):
        self.librarianScreen = Admin_or_Librarian()
@@ -159,15 +171,18 @@ class SignIn(QtWidgets.QMainWindow):
 
         cursor.execute(sql_query, (username))
         result = cursor.fetchone()
-        if password != result[0]:
-            show_message(self, "Error", "Incorrect Password")
-            return
         if result is None:
             show_message(self, "Error", "No username found")
             return
+        
+        if password != result[0]:
+            show_message(self, "Error", "Incorrect Password")
+            return
+        
         self.openMemberScreen()
     def openMemberScreen(self): 
-       self.memberScreen = MemberScreen()
+       self.memberScreen = MemberScreen(self.usernameF.text())
+       print(self.usernameF.text())
        self.memberScreen.show()
 
 
@@ -368,46 +383,50 @@ class Members(QtWidgets.QMainWindow):
 ############################################ MODULE 3 ################################################### 
 
 class MemberScreen(QtWidgets.QMainWindow):
-    def __init__(self):
+    def __init__(self, username):
         super().__init__()
         uic.loadUi('Member_or_customer.ui', self)
-        self.SearchIssue_Button.clicked.connect(self.openSearchScreen)
-        self.BookRoom_Button.clicked.connect(self.openBookARoomScreen)
-    def openSearchScreen(self):
-        self.searchScreen = SearchScreen()
+        self.SearchIssue_Button.clicked.connect(lambda: self.openSearchScreen(username))
+        self.BookRoom_Button.clicked.connect(lambda: self.openBookARoomScreen)
+    def openSearchScreen(self, username):
+        self.searchScreen = SearchScreen(username)
         self.searchScreen.show()
     def openBookARoomScreen():
         pass
 
-class SearchScreen:
-    def __init__(self):
+class SearchScreen(QtWidgets.QMainWindow):
+    def __init__(self, username):
         super().__init__()
-        uic.loadUi("Search.ui")
-        self.GenreCB.setCurrentText(-1)
+        uic.loadUi("Search.ui", self)
         self.TitleF = self.findChild(QtWidgets.QLineEdit, "TitleLE")
         self.GenreF = self.findChild(QtWidgets.QComboBox, "GenreCB")
         self.AuthorF = self.findChild(QtWidgets.QLineEdit, "AuthorLE")
-        connection = pyodbc.connect(connection_string)
+        self.GenreF.setCurrentText("")
 
-        cursor = connection.cursor()
+        self.connection = pyodbc.connect(connection_string)
 
-        cursor = connection.cursor()
+        self.cursor = self.connection.cursor()
 
-        cursor.execute("select * from Books")
+        self.cursor = self.connection.cursor()
+
+        self.cursor.execute("select * from Books")
 
         # Fetch all rows and populate the table
-        for row_index, row_data in enumerate(cursor.fetchall()):
+        for row_index, row_data in enumerate(self.cursor.fetchall()):
             self.BookTW.insertRow(row_index)
             for col_index, cell_data in enumerate(row_data):
                 item = QTableWidgetItem(str(cell_data))
-                self.bookTW.setItem(row_index, col_index, item)
+                self.BookTW.setItem(row_index, col_index, item)
 
         self.SearchPB.clicked.connect(self.search)
         self.ViewPB.clicked.connect(self.view) # Yet to be completed (needs test)
-        self.RateABookPB.clicked.connect(self.rateABook) # Yet to be completed
+        self.RateABookPB.clicked.connect(lambda: self.rateABook) # Yet to be completed
 
+        print(username)
         self.ViewAllPB.clicked.connect(self.viewAll)
-        self.IssuePB.clicked.connect(self.issue) # Yet to be completed (needs test)
+        self.IssuePB.clicked.connect(lambda: self.issue(username)) # Yet to be completed (needs test)
+
+        self.LogoutPB.clicked.connect(self.loggingOut)
 
     def search(self):
         sqlQuery = "select * from Books where "
@@ -448,12 +467,14 @@ class SearchScreen:
             else:
                 show_message(self, "Warning", "Please select a book to view details.")
 
-    def issue(self):
+    def issue(self, username):
         """Issue the selected book to the current user."""
         selected_row = self.BookTW.currentRow()
         if selected_row != -1:  # Check if a row is selected
+            self.cursor.execute("select Member_ID from Member_Info where Member_Name = ?", (username))
+            user_id = self.cursor.fetchone()
+            user_id = user_id[0]
             book_id = self.BookTW.item(selected_row, 0).text()  # Assuming the first column is the book ID
-            user_id = self.getCurrentUserID()  # Implement this function to fetch the current user's ID
             self.cursor.execute("SELECT Availability FROM Books WHERE Book_ID = ?", (book_id,))
             book_status = self.cursor.fetchone()
             if book_status and book_status[0] == "Available":
@@ -469,7 +490,10 @@ class SearchScreen:
                 show_message(self, "Warning", "The selected book is not available for issuing.")
         else:
             show_message(self, "Warning", "Please select a book to issue.")
-
+    def loggingOut(self):
+        self.mainScreen = UI()
+        self.mainScreen.show()
+    
 
 
 
