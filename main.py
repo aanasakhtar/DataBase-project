@@ -4,9 +4,9 @@ from PyQt6.QtWidgets import QMessageBox, QApplication, QMainWindow, QTableWidget
 import sys
 import pyodbc
 
-server = "DESKTOP-CHMOJM3\SQLEXPRESS" # Anas
+# server = "DESKTOP-CHMOJM3\SQLEXPRESS" # Anas
 # server = 'DESKTOP-9QAGOMJ\SQLSERVER1' # Hamza
-# server = 'LAPTOP-N8UU3FAP\SQLSERVER1' #Zoraiz
+server = 'LAPTOP-N8UU3FAP\\SQLSERVER1' #Zoraiz
 database = "DbFinal"
 connection_string = f'DRIVER={{ODBC Driver 17 for SQL Server}};SERVER={server};DATABASE={database};Trusted_Connection=yes'
 
@@ -403,11 +403,11 @@ class SearchScreen:
                 self.bookTW.setItem(row_index, col_index, item)
 
         self.SearchPB.clicked.connect(self.search)
-        self.ViewPB.clicked.connect(self.view) # Yet to be completed
+        self.ViewPB.clicked.connect(self.view) # Yet to be completed (needs test)
         self.RateABookPB.clicked.connect(self.rateABook) # Yet to be completed
 
         self.ViewAllPB.clicked.connect(self.viewAll)
-        self.IssuePB.clicked.connect(self.issue) # Yet to be completed
+        self.IssuePB.clicked.connect(self.issue) # Yet to be completed (needs test)
 
     def search(self):
         sqlQuery = "select * from Books where "
@@ -433,6 +433,44 @@ class SearchScreen:
             for col_index, cell_data in enumerate(row_data):
                 item = QTableWidgetItem(str(cell_data))
                 self.bookTW.setItem(row_index, col_index, item)
+
+    def view(self):
+        """View detailed information about the selected book."""
+        selected_row = self.BookTW.currentRow()
+        if selected_row != -1:  # Check if a row is selected
+            book_id = self.BookTW.item(selected_row, 0).text()  # Assuming the first column is the book ID
+            self.cursor.execute("SELECT * FROM Books WHERE Book_ID = ?", (book_id,))
+            book_details = self.cursor.fetchone()
+            if book_details:
+                # Show the details in a message box or separate window
+                details = f"ID: {book_details[0]}\nTitle: {book_details[1]}\nAuthor: {book_details[2]}\nGenre: {book_details[3]}\nStatus: {book_details[4]}"
+                show_message(self, "Book Details", details)
+            else:
+                show_message(self, "Warning", "Please select a book to view details.")
+
+    def issue(self):
+        """Issue the selected book to the current user."""
+        selected_row = self.BookTW.currentRow()
+        if selected_row != -1:  # Check if a row is selected
+            book_id = self.BookTW.item(selected_row, 0).text()  # Assuming the first column is the book ID
+            user_id = self.getCurrentUserID()  # Implement this function to fetch the current user's ID
+            self.cursor.execute("SELECT Availability FROM Books WHERE Book_ID = ?", (book_id,))
+            book_status = self.cursor.fetchone()
+            if book_status and book_status[0] == "Available":
+                self.cursor.execute("UPDATE Books SET Availability = 'Issued' WHERE Book_ID = ?", (book_id,))
+                self.cursor.execute("""
+                INSERT INTO Issued_Books (Member_ID, Book_ID, Issue_Date, Due_Date) 
+                VALUES (?, ?, GETDATE(), DATEADD(WEEK, 2, GETDATE()))
+            """, (user_id, book_id))
+                self.connection.commit()
+                show_message(self, "Success", "Book issued successfully!")
+                self.BookTW.item(selected_row, 4).setText("Issued")  # Update status in UI
+            else:
+                show_message(self, "Warning", "The selected book is not available for issuing.")
+        else:
+            show_message(self, "Warning", "Please select a book to issue.")
+
+
 
 
 
