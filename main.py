@@ -424,7 +424,7 @@ class SearchScreen(QtWidgets.QMainWindow):
 
         print(username)
         self.ViewAllPB.clicked.connect(self.viewAll)
-        self.IssuePB.clicked.connect(lambda: self.issue(username)) # Yet to be completed (needs test)
+        self.IssuePB.clicked.connect(lambda: self.issue(username))
 
         self.LogoutPB.clicked.connect(self.loggingOut)
 
