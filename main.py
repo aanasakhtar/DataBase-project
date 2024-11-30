@@ -636,9 +636,10 @@ class Members(QtWidgets.QMainWindow):
 ############################################ MODULE 3 ################################################### 
 
 class MemberScreen(QtWidgets.QMainWindow):
-    def __init__(self, username):
+    def __init__(self, username, db):
         super().__init__()
         uic.loadUi('Member_or_customer.ui', self)
+        self.db = db
         self.SearchIssue_Button.clicked.connect(lambda: self.openSearchScreen(username))
         self.BookRoom_Button.clicked.connect(lambda: self.openBookARoom())
     def openSearchScreen(self, username):
@@ -647,7 +648,7 @@ class MemberScreen(QtWidgets.QMainWindow):
     
     def openBookARoom(self):
         """Open the BookARoom screen."""
-        self.bookARoomWindow = BookARoom()  # Instantiate the BookARoom class
+        self.bookARoomWindow = BookARoom(self.db)  # Instantiate the BookARoom class
         self.bookARoomWindow.show()  # Show the BookARoom screen
         self.close()  # Optionally close the current SearchScreen if desired
 
@@ -659,12 +660,10 @@ class SearchScreen(QtWidgets.QMainWindow):
         self.TitleF = self.findChild(QtWidgets.QLineEdit, "TitleLE")
         self.GenreF = self.findChild(QtWidgets.QComboBox, "GenreCB")
         self.AuthorF = self.findChild(QtWidgets.QLineEdit, "AuthorLE")
-        self.GenreF.setCurrentText("")
+        self.GenreF.setCurrentIndex(-1)
         
         self.db = DatabaseConnection()
         self.cursor = self.db.get_cursor()
-
-        self.cursor = self.connection.cursor()
 
         self.cursor.execute("select * from Books")
 
@@ -686,19 +685,42 @@ class SearchScreen(QtWidgets.QMainWindow):
         self.LogoutPB.clicked.connect(self.loggingOut)
 
     def search(self):
-        sqlQuery = "select * from Books where "
+        sqlQuery = "select * from Books"  # Removed "where" initially
         parameters = []
+
+        # Add conditions to the WHERE clause only if relevant fields are filled
+        conditions = []  # This will hold the conditions (like "Title=?", "Genre=?", etc.)
+
         if self.TitleF.text():
-            sqlQuery+="and Title=? "
+            conditions.append("Title=?")
             parameters.append(self.TitleF.text())
-        if self.GenreF.text():
-            sqlQuery+="and Genre=? "
-            parameters.append(self.GenreF.text())
+        
+        if self.GenreF.currentText():
+            conditions.append("Genre=?")
+            parameters.append(self.GenreF.currentText())
+        
         if self.AuthorF.text():
-            sqlQuery+="and Author=? "
+            conditions.append("Author=?")
             parameters.append(self.AuthorF.text())
 
+        # If any conditions were added, append them to the query with "WHERE" and "AND"
+        if conditions:
+            sqlQuery += " WHERE " + " AND ".join(conditions)
+
+        print(sqlQuery)  # For debugging
+
         self.cursor.execute(sqlQuery, parameters)
+
+        # Clear existing rows in the table before populating with new data
+        self.BookTW.setRowCount(0)
+
+        # Populate table with filtered rows
+        for row_index, row_data in enumerate(self.cursor.fetchall()):
+            self.BookTW.insertRow(row_index)
+            for col_index, cell_data in enumerate(row_data):
+                item = QTableWidgetItem(str(cell_data))
+                self.BookTW.setItem(row_index, col_index, item)
+
     
     def viewAll(self):
         self.cursor.execute("select * from Books")
