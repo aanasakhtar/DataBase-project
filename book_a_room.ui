@@ -100,16 +100,6 @@
       </rect>
      </property>
     </widget>
-    <widget class="QLineEdit" name="lineEdit">
-     <property name="geometry">
-      <rect>
-       <x>80</x>
-       <y>30</y>
-       <width>270</width>
-       <height>20</height>
-      </rect>
-     </property>
-    </widget>
     <widget class="QLineEdit" name="lineEdit_2">
      <property name="geometry">
       <rect>
@@ -123,7 +113,7 @@
     <widget class="QSpinBox" name="spinBox">
      <property name="geometry">
       <rect>
-       <x>150</x>
+       <x>160</x>
        <y>250</y>
        <width>40</width>
        <height>20</height>
@@ -146,6 +136,16 @@
       <string>Count of people for this booking:</string>
      </property>
     </widget>
+    <widget class="QComboBox" name="comboBox_2">
+     <property name="geometry">
+      <rect>
+       <x>80</x>
+       <y>30</y>
+       <width>270</width>
+       <height>22</height>
+      </rect>
+     </property>
+    </widget>
    </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
@@ -154,7 +154,7 @@
      <x>0</x>
      <y>0</y>
      <width>547</width>
-     <height>18</height>
+     <height>26</height>
     </rect>
    </property>
   </widget>

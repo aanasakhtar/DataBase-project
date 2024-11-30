@@ -739,63 +739,82 @@ class BookARoom(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
         uic.loadUi("Book_a_room.ui", self)  # Load the UI for the "Book a Room" screen
-        
+
+        # Database connection
         self.db = DatabaseConnection()
-        self.cursor = self.db.get_cursor() 
-        self.populateAvailableRooms()
-        # Connect the "Confirm" button to the bookRoom method
+        self.cursor = self.db.get_cursor()
+
+        # Populate Room Numbers in the Room ComboBox
+        self.populateRoomNumbers()
+
+        # Connect signals
+        self.comboBox_2.currentIndexChanged.connect(self.populateAvailableSlots)
         self.pushButton.clicked.connect(self.bookRoom)
-    
-    def populateAvailableRooms(self):
-        """Fetch available rooms from the database and populate the ComboBox"""
-        query = """SELECT Room_No, Time_Slot 
-                FROM Rooms 
-                WHERE Room_Availability = 'Available'"""
-        self.cursor.execute(query)
-        
-        # Fetch all available rooms
-        available_rooms = self.cursor.fetchall()
-        
-        # Populate the combo box with available room numbers and their time slots
-        for room in available_rooms:
-            room_no, time_slot = room
-            self.comboBox.addItem(f"Room {room_no}: {time_slot}")
 
-    def bookRoom(self): #not complete
-        """Handle the booking logic when confirm button is clicked."""
-        
-        # Retrieve values from the form fields
-        room_no = self.lineEdit.text()  # Room No field
-        username = self.lineEdit_2.text()  # Username field
-        available_slot = self.comboBox.currentText()  # Available slot dropdown
-        count_of_people = self.spinBox.value()  # Number of people (from spinBox)
+    def populateRoomNumbers(self):
+        """Populate the room numbers into the Room Number ComboBox."""
+        self.cursor.execute("SELECT DISTINCT Room_No FROM Rooms")
+        room_numbers = self.cursor.fetchall()
+        self.comboBox_2.clear()  # Clear any existing items
+        self.comboBox_2.addItem("Select Room")  # Placeholder
+        for room in room_numbers:
+            self.comboBox_2.addItem(str(room[0]))  # Add room numbers to combo box
 
-        # You can add the logic to store this data into the database or any other processing you need
-        print(f"Room No: {room_no}, Username: {username}, Available Slot: {available_slot}, Count of People: {count_of_people}")
-        
-        # Example database insertion (make sure you have a database connection defined)
-        
-        self.cursor.execute("""
+    def populateAvailableSlots(self):
+        """Populate the available slots for the selected room."""
+        selected_room = self.comboBox_2.currentText()
+        if selected_room != "Select Room":  # Ensure a valid room is selected
+            query = """
+            SELECT Time_Slot 
+            FROM Rooms 
+            WHERE Room_No = ? AND Room_Availability = 'Available'
+            """
+            self.cursor.execute(query, (selected_room,))
+            available_slots = self.cursor.fetchall()
+            self.comboBox.clear()  # Clear existing slots
+            for slot in available_slots:
+                self.comboBox.addItem(slot[0])  # Add available time slots to the combo box
+        else:
+            self.comboBox.clear()  # Clear the combo box if no valid room is selected
+
+    def bookRoom(self):
+        """Book the selected room and update the database."""
+        selected_room = self.comboBox_2.currentText()
+        selected_slot = self.comboBox.currentText()
+        username = self.lineEdit_2.text()
+        count_of_people = self.spinBox.value()
+
+        if selected_room == "Select Room" or not selected_slot:
+            QtWidgets.QMessageBox.warning(self, "Error", "Please select a valid room and time slot.")
+            return
+
+        if not username:
+            QtWidgets.QMessageBox.warning(self, "Error", "Please enter a username.")
+            return
+
+        # Insert booking into the database
+        try:
+            self.cursor.execute("""
                 INSERT INTO Bookings (Member_ID, Room_No, Booking_Date, Booking_Time_Slot)
                 VALUES (?, ?, GETDATE(), ?)
-            """, (username, room_no, available_slot))
+            """, (username, selected_room, selected_slot))
+            self.connection.commit()
 
-        self.connection.commit()
-        
-        # Optionally, show a success message
-        show_message(self, "Booking Confirmed", "The room has been successfully booked!")
-        
-        # Close the current screen (optional, if you want to close the BookARoom screen)
-        self.close()
+            # Mark the room slot as 'Booked' in Rooms table
+            self.cursor.execute("""
+                UPDATE Rooms
+                SET Room_Availability = 'Booked'
+                WHERE Room_No = ? AND Time_Slot = ?
+            """, (selected_room, selected_slot))
+            self.connection.commit()
+
+            QtWidgets.QMessageBox.information(self, "Success", "Room booked successfully!")
+            self.populateAvailableSlots()  # Refresh available slots
+        except Exception as e:
+            QtWidgets.QMessageBox.critical(self, "Error", f"An error occurred: {e}")
+
 
     
-
-
-
-
-
-
-
 app = QtWidgets.QApplication(sys.argv) # Create an instance of QtWidgets.QApplication
 window = UI() # Create an instance of our 
 window.show()
