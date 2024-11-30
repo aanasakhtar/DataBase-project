@@ -92,7 +92,7 @@ VALUES
 (102, '10:00:00 to 11:00:00', 'Booked', 8),
 (103, '11:00:00 to 12:00:00', 'Available', 15),
 (104, '12:00:00 to 01:00:00', 'Available', 12),
-(105, '01:00:00 to 02:00:00', 'Available', 10);
+(105, '01:00:00 to 02:00:00', 'Booked', 10);
 
 -- Insert Bookings
 -- Ensure that Member_ID and Room_No exist in the respective tables
@@ -100,4 +100,3 @@ INSERT INTO Bookings (Member_ID, Room_No, Booking_Date, Booking_Time_Slot)
 VALUES 
 (101, 102, '2024-11-01', '10:00:00 to 11:00:00'), -- Member_ID=101 and Room_No=102 exist
 (104, 105, '2024-11-05', '01:00:00 to 02:00:00'); -- Member_ID=104 and Room_No=105 exist
-
