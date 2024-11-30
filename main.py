@@ -14,9 +14,9 @@ def show_message(parent, title, message):
 
 class DatabaseConnection:
     def __init__(self):
-        # self.server = "DESKTOP-CHMOJM3\SQLEXPRESS" # Anas
+        self.server = "DESKTOP-CHMOJM3\SQLEXPRESS" # Anas
         # self.server = 'DESKTOP-9QAGOMJ\SQLSERVER1' # Hamza
-        self.server = 'LAPTOP-N8UU3FAP\\SQLSERVER1' #Zoraiz
+        # self.server = 'LAPTOP-N8UU3FAP\\SQLSERVER1' #Zoraiz
         self.database = 'DbFinal'
         self.connection = None
         self.cursor = None
@@ -75,8 +75,8 @@ class CreateAccount(QtWidgets.QMainWindow):
         uic.loadUi('Create_account.ui', self)
         self.resize(600, 400)
 
-        # Store the database connection object (from the DatabaseConnection class)
-        self.db = db_connection.get_connection()  # Access the connection from the DatabaseConnection object
+        # Store the DatabaseConnection instance directly
+        self.db = db_connection  # Keep the entire DatabaseConnection object
         self.cursor = db_connection.get_cursor()  # Access the cursor from the DatabaseConnection object
 
         self.usernameF = self.findChild(QtWidgets.QLineEdit, "Username")
@@ -127,15 +127,21 @@ class CreateAccount(QtWidgets.QMainWindow):
             show_message(self, "Error", f"Failed to create account: {e}")
 
     def add_to_database(self, username, password):
-        # Use the shared connection to get a cursor
-        cursor = self.db.get_cursor()  # Reuse the cursor from the shared connection
+        # Use the cursor directly
+        cursor = self.db.get_cursor()  # Access the cursor from the DatabaseConnection object
 
+        cursor.execute("select count(*) from Member_Info")
+        member_id = cursor.fetchone()
+        member_id = member_id[0] + 1
+        # print(member_id)
         sql_query = """
-            insert into Member_Info(Member_Name, Member_Password, Member_Status)
-            values (?,?,?)
+            INSERT INTO Member_Info(Member_ID, Member_Name, Member_Password, Member_Status)
+            VALUES (?, ?, ?, ?)
         """
-        cursor.execute(sql_query, (username, password, "Active"))
-        self.db.commit()  # Commit using the shared connection
+        cursor.execute(sql_query, (member_id, username, password, "Active"))
+
+        self.db.get_connection().commit()  # Commit using the shared connection
+
 
 
     
@@ -153,6 +159,8 @@ class SignIn(QtWidgets.QMainWindow):
         self.usernameF = self.findChild(QtWidgets.QLineEdit, "Enter_Username_Edit")
         self.passwordF = self.findChild(QtWidgets.QLineEdit, "Enter_Password_Edit")
         self.passwordF.setEchoMode(QtWidgets.QLineEdit.EchoMode.Password)
+        
+        self.signinBtn = self.findChild(QtWidgets.QPushButton, "signinBtn")  # Ensure button is connected
         self.signinBtn.clicked.connect(self.signin)
 
     def signin(self):
@@ -165,20 +173,23 @@ class SignIn(QtWidgets.QMainWindow):
 
     def signInAsLibrarian(self, username, password):
         sql_query = """
-            select Librarian_Password from Library_Staff where Librarian_Name = ?
-            """
+            SELECT Librarian_Password FROM Library_Staff WHERE Librarian_Name = ?
+        """
         cursor = self.db.get_cursor()  # Use the cursor from DatabaseConnection
-        cursor.execute(sql_query, (username,))
-        result = cursor.fetchone()
-        
-        if result is None:
-            show_message(self, "Error", "No username found")
-            return
-        if password != result[0]:
-            show_message(self, "Error", "Incorrect Password")
-            return
+        try:
+            cursor.execute(sql_query, (username,))
+            result = cursor.fetchone()
+            
+            if result is None:
+                show_message(self, "Error", "No username found")
+                return
+            if password != result[0]:
+                show_message(self, "Error", "Incorrect Password")
+                return
 
-        self.openLibrarianScreen()
+            self.openLibrarianScreen()
+        except Exception as e:
+            show_message(self, "Error", f"Database error: {e}")
 
     def openLibrarianScreen(self):
         self.librarianScreen = Admin_or_Librarian(self.db)  # Pass db to Librarian screen
@@ -186,24 +197,29 @@ class SignIn(QtWidgets.QMainWindow):
 
     def signInAsMember(self, username, password):
         sql_query = """
-            select Member_Password from Member_Info where Member_Name = ?
-            """
-        self.cursor.execute(sql_query, (username,))
-        result = self.cursor.fetchone()
-        
-        if result is None:
-            show_message(self, "Error", "No username found")
-            return
-        
-        if password != result[0]:
-            show_message(self, "Error", "Incorrect Password")
-            return
-        
-        self.openMemberScreen()
+            SELECT Member_Password FROM Member_Info WHERE Member_Name = ?
+        """
+        cursor = self.db.get_cursor()  # Correctly retrieve the cursor here
+        try:
+            cursor.execute(sql_query, (username,))
+            result = cursor.fetchone()
+            
+            if result is None:
+                show_message(self, "Error", "No username found")
+                return
+            
+            if password != result[0]:
+                show_message(self, "Error", "Incorrect Password")
+                return
+            
+            self.openMemberScreen()
+        except Exception as e:
+            show_message(self, "Error", f"Database error: {e}")
 
     def openMemberScreen(self): 
         self.memberScreen = MemberScreen(self.usernameF.text(), self.db)  # Pass db to Member screen
         self.memberScreen.show()
+
 
 
 
