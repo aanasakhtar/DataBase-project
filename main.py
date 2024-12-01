@@ -16,9 +16,9 @@ screens = []
 
 class DatabaseConnection:
     def __init__(self):
-        self.server = "DESKTOP-CHMOJM3\SQLEXPRESS" # Anas
+        # self.server = "DESKTOP-CHMOJM3\SQLEXPRESS" # Anas
         # self.server = 'DESKTOP-9QAGOMJ\SQLSERVER1' # Hamza
-        # self.server = 'LAPTOP-N8UU3FAP\\SQLSERVER1' #Zoraiz
+        self.server = 'LAPTOP-N8UU3FAP\\SQLSERVER1' #Zoraiz
         self.database = 'DbFinal'
         self.connection = None
         self.cursor = None
