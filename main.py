@@ -357,36 +357,66 @@ class Room_inventory(QtWidgets.QMainWindow):
 
     def update_room(self):
         cursor = self.db_connection.get_cursor()  # Get the cursor from DatabaseConnection
-        # Update the room's availability and clear the 'BookedBy' field
         selected_row = self.room_table.currentRow()
+
         if selected_row != -1:
-            # Get the room number and current availability
-            room_no = self.room_table.item(selected_row, 0).text()
-            availability = self.room_table.item(selected_row, 1).text()
+            # Get the room number and availability from the selected row in the table
+            room_no = self.room_table.item(selected_row, 0).text()  # Room number (first column)
+            availability = self.room_table.item(selected_row, 1).text()  # Availability status (second column)
+
+            # Step 1: Fetch the corresponding time slot for the selected room from the Rooms table
+            fetch_time_slot_query = """
+            SELECT Time_Slot
+            FROM Rooms
+            WHERE Room_No = ? AND Room_Availability = 'Booked'
+            """
+            cursor.execute(fetch_time_slot_query, (room_no,))
+            time_slot = cursor.fetchone()
+
+            # If no time slot is found, show an error
+            if time_slot is None:
+                QtWidgets.QMessageBox.warning(self, "Invalid Action", "Room is not booked or time slot is missing.")
+                return
+            
+            time_slot = time_slot[0]  # Extract the time slot from the result
+
+            # Debugging: Print the room number and time slot
+            print(f"Room No: {room_no}, Time Slot: {time_slot}, Availability: {availability}")
 
             if availability == "Booked":
-                # Remove the booking from the Bookings table
-                delete_query = """
-                DELETE FROM Bookings
-                WHERE Room_No = ?
-                """
-                cursor.execute(delete_query, (room_no,))
-                self.db_connection.get_connection().commit()
+                try:
+                    # Step 2: Remove the booking for the specific time slot from the Bookings table
+                    delete_query = """
+                    DELETE FROM Bookings
+                    WHERE Room_No = ? AND Booking_Time_Slot = ?
+                    """
+                    print(f"Executing query: {delete_query} with Room_No = {room_no} and Time_Slot = {time_slot}")  # Debugging
+                    cursor.execute(delete_query, (room_no, time_slot))
+                    self.db_connection.get_connection().commit()  # Commit the delete operation
 
-                # Update the Room_Availability to 'Available' in the Rooms table
-                update_query = """
-                UPDATE Rooms
-                SET Room_Availability = 'Available'
-                WHERE Room_No = ?
-                """
-                cursor.execute(update_query, (room_no,))
-                self.db_connection.get_connection().commit()
+                    # Step 3: Update the Room_Availability to 'Available' for that specific room and time slot
+                    # Here we ensure that we update the correct room and time slot in the Rooms table
+                    update_query = """
+                    UPDATE Rooms
+                    SET Room_Availability = 'Available'
+                    WHERE Room_No = ? AND Time_Slot = ?
+                    """
+                    print(f"Executing query: {update_query} with Room_No = {room_no} and Time_Slot = {time_slot}")  # Debugging
+                    cursor.execute(update_query, (room_no, time_slot))
+                    self.db_connection.get_connection().commit()  # Commit the update operation
 
-                # Step 3: Update the table in the UI
-                self.room_table.item(selected_row, 1).setText("Available")
-                self.room_table.setItem(selected_row, 2, QtWidgets.QTableWidgetItem(""))
+                    # Step 4: Update the table in the UI (change the availability of the selected row)
+                    self.room_table.item(selected_row, 1).setText("Available")  # Update the availability for the specific time slot
+                    self.room_table.setItem(selected_row, 2, QtWidgets.QTableWidgetItem(""))  # Clear the 'BookedBy' field
 
-                QtWidgets.QMessageBox.information(self, "Room Updated", f"Room {room_no} is now available.")
+                    QtWidgets.QMessageBox.information(self, "Room Updated", f"Room {room_no} for time slot {time_slot} is now available.")
+
+                except Exception as e:
+                    self.db_connection.get_connection().rollback()  # Rollback in case of error
+                    QtWidgets.QMessageBox.warning(self, "Error", f"Failed to update room: {str(e)}")
+            else:
+                QtWidgets.QMessageBox.warning(self, "Invalid Action", "Room is not booked.")
+
 
     def open_time_slots(self):
         # Get the selected row index
