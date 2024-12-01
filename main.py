@@ -65,6 +65,7 @@ class UI(QtWidgets.QMainWindow):
     def open_sign_in(self):
         # Pass the shared database connection to SignIn
         self.signIn = SignIn(self.db)
+        screens.append(self.signIn)
         self.signIn.show()
 
 
@@ -227,9 +228,8 @@ class SignIn(QtWidgets.QMainWindow):
 
     def openMemberScreen(self): 
         self.memberScreen = MemberScreen(self.usernameF.text(), self.db)  # Pass db to Member screen
+        screens.append(self.memberScreen)
         self.memberScreen.show()
-    def logout(self):
-        self.close()
 
 
 
@@ -770,6 +770,7 @@ class MemberScreen(QtWidgets.QMainWindow):
         self.BookRoom_Button.clicked.connect(lambda: self.openBookARoom())
     def openSearchScreen(self, username):
         self.searchScreen = SearchScreen(username)
+        screens.append(self.searchScreen)
         self.searchScreen.show()
     
     def openBookARoom(self):
@@ -777,10 +778,6 @@ class MemberScreen(QtWidgets.QMainWindow):
         self.bookARoomWindow = BookARoom(self.db)  # Instantiate the BookARoom class
         self.bookARoomWindow.show()  # Show the BookARoom screen
         self.close()  # Optionally close the current SearchScreen if desired
-
-    def logout(self):
-        self.close()
-        self.parent().logout()
 
 class SearchScreen(QtWidgets.QMainWindow):
     def __init__(self, username):
@@ -900,8 +897,11 @@ class SearchScreen(QtWidgets.QMainWindow):
         else:
             show_message(self, "Warning", "Please select a book to issue.")
     def loggingOut(self):
+        for screen in screens:
+            screen.close()
+        screens.clear()
         self.close()
-        self.parent().close()
+        
 
 
     def rateABook(self):
