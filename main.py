@@ -250,7 +250,6 @@ class Admin_or_Librarian(QtWidgets.QMainWindow):
         self.inventory_window = None
         self.members_window = None
 
-        # Connect buttons
         self.Inventory_Button.clicked.connect(self.open_inventory)
         self.Members_Button.clicked.connect(self.open_members)
 
@@ -280,15 +279,12 @@ class Inventory(QtWidgets.QMainWindow):
         super().__init__(parent)  # Pass the parent to the parent class constructor
         uic.loadUi('Inventory.ui', self)
 
-        # Store the shared DatabaseConnection object
         self.db_connection = db_connection
         self.librarian_id = librarian_id
 
-        # To store same instances for future use
         self.room_inventory_window = None
         self.book_inventory_window = None
 
-        # Connect buttons
         self.RoomInventory_Button.clicked.connect(self.open_room_inventory)
         self.BookInventory_Button.clicked.connect(self.open_book_inventory)
 
@@ -311,18 +307,14 @@ class Room_inventory(QtWidgets.QMainWindow):
         super().__init__(parent)
         uic.loadUi('Room_inventory.ui', self)
 
-        # Accessing widgets from the UI
         self.room_table = self.findChild(QtWidgets.QTableWidget, 'Room_Table')
         self.update_button = self.findChild(QtWidgets.QPushButton, 'Update_Button')
         self.time_slots_button = self.findChild(QtWidgets.QPushButton, 'TimeSlots_Button')
 
-        # Store the shared DatabaseConnection object
         self.db_connection = db_connection
 
-        # To store same instances for future use
         self.time_slots_window = None
 
-        # Connect button clicks to their respective methods
         self.update_button.clicked.connect(self.update_room)
         self.time_slots_button.clicked.connect(self.open_time_slots)
 
@@ -362,13 +354,13 @@ class Room_inventory(QtWidgets.QMainWindow):
             capacity_item = QtWidgets.QTableWidgetItem(str(capacity))
 
             # Add items to the respective columns
-            self.room_table.insertRow(row_idx)  # Dynamically add a row for each entry
+            self.room_table.insertRow(row_idx)  # Add row for each entry
             self.room_table.setItem(row_idx, 0, room_no_item)
             self.room_table.setItem(row_idx, 1, availability_item)
             self.room_table.setItem(row_idx, 2, booked_by_item)
             self.room_table.setItem(row_idx, 3, capacity_item)
 
-        # Set the table as read-only while allowing row selection
+        # Table set as read-only while allowing row selection
         self.room_table.setEditTriggers(QtWidgets.QAbstractItemView.EditTrigger.NoEditTriggers)
         self.room_table.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectionBehavior.SelectRows)
         self.room_table.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.SingleSelection)
@@ -383,7 +375,7 @@ class Room_inventory(QtWidgets.QMainWindow):
             room_no = self.room_table.item(selected_row, 0).text()  # Room number (first column)
             availability = self.room_table.item(selected_row, 1).text()  # Availability status (second column)
 
-            # Step 1: Fetch the corresponding time slot for the selected room from the Rooms table
+            # Fetch the corresponding time slot for the selected room from the Rooms table
             fetch_time_slot_query = """
             SELECT Time_Slot
             FROM Rooms
@@ -399,32 +391,26 @@ class Room_inventory(QtWidgets.QMainWindow):
             
             time_slot = time_slot[0]  # Extract the time slot from the result
 
-            # Debugging: Print the room number and time slot
-            print(f"Room No: {room_no}, Time Slot: {time_slot}, Availability: {availability}")
-
             if availability == "Booked":
                 try:
-                    # Step 2: Remove the booking for the specific time slot from the Bookings table
+                    # Remove the booking for the specific time slot from the Bookings table
                     delete_query = """
                     DELETE FROM Bookings
                     WHERE Room_No = ? AND Booking_Time_Slot = ?
                     """
-                    print(f"Executing query: {delete_query} with Room_No = {room_no} and Time_Slot = {time_slot}")  # Debugging
                     cursor.execute(delete_query, (room_no, time_slot))
                     self.db_connection.get_connection().commit()  # Commit the delete operation
 
-                    # Step 3: Update the Room_Availability to 'Available' for that specific room and time slot
-                    # Here we ensure that we update the correct room and time slot in the Rooms table
+                    # Update the Room_Availability to 'Available' for that specific room and time slot
                     update_query = """
                     UPDATE Rooms
                     SET Room_Availability = 'Available'
                     WHERE Room_No = ? AND Time_Slot = ?
                     """
-                    print(f"Executing query: {update_query} with Room_No = {room_no} and Time_Slot = {time_slot}")  # Debugging
                     cursor.execute(update_query, (room_no, time_slot))
                     self.db_connection.get_connection().commit()  # Commit the update operation
 
-                    # Step 4: Update the table in the UI (change the availability of the selected row)
+                    # Update the table in the UI (change the availability of the selected row)
                     self.room_table.item(selected_row, 1).setText("Available")  # Update the availability for the specific time slot
                     self.room_table.setItem(selected_row, 2, QtWidgets.QTableWidgetItem(""))  # Clear the 'BookedBy' field
 
@@ -443,21 +429,17 @@ class Room_inventory(QtWidgets.QMainWindow):
 
         # If a row is selected
         if selected_row != -1:  
-            # Get the room number from the selected row
             self.selected_room_no = self.room_table.item(selected_row, 0).text()  # Get the room number
 
             # Temporarily disable selection mode when opening the time slots window
             self.room_table.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
 
-            # Show the TimeSlots window if it hasn't been shown yet
             if self.time_slots_window is None:
-                self.time_slots_window = QtWidgets.QMainWindow()  # Create the TimeSlots window
-                uic.loadUi('time_slots.ui', self.time_slots_window)  # Load the UI
+                self.time_slots_window = QtWidgets.QMainWindow()
+                uic.loadUi('time_slots.ui', self.time_slots_window)
 
-            # Now populate the time slots table in the UI
             self.populate_time_slots()
 
-            # Show the TimeSlots window
             self.time_slots_window.show()
 
             # Re-enable row selection mode after showing the time slots window
@@ -465,13 +447,11 @@ class Room_inventory(QtWidgets.QMainWindow):
 
 
     def populate_time_slots(self):
-        # Access the table widget in the time slots window
         time_slots_table = self.time_slots_window.findChild(QtWidgets.QTableWidget, 'tableWidget')
 
-        # Get the selected row from the room inventory screen
         selected_row = self.room_table.currentRow()
 
-        # Get the room number for the selected row (the first column of the selected row)
+        # Get the room number for the selected row
         room_no = self.room_table.item(selected_row, 0).text()
 
         # Get cursor from the database connection
@@ -485,7 +465,7 @@ class Room_inventory(QtWidgets.QMainWindow):
         """, (room_no,))
 
         # Fetch all time slots for the selected room
-        rows = cursor.fetchall()  # Fetch all rows for the selected room
+        rows = cursor.fetchall()
 
         # Clear the time slots table before populating it with new data
         time_slots_table.clearContents()
