@@ -201,6 +201,7 @@ class SignIn(QtWidgets.QMainWindow):
 
     def openLibrarianScreen(self):
         self.librarianScreen = Admin_or_Librarian(self.db, self.librarian_id)  # Pass db and librarian_id to the screen
+        screens.append(self.librarianScreen)
         self.librarianScreen.show()
 
     def signInAsMember(self, username, password):
@@ -253,6 +254,8 @@ class Admin_or_Librarian(QtWidgets.QMainWindow):
         self.Inventory_Button.clicked.connect(self.open_inventory)
         self.Members_Button.clicked.connect(self.open_members)
 
+        self.LogOut_Button.clicked.connect(self.logout)
+
     def open_inventory(self):
         if self.inventory_window is None:
             # Pass the DatabaseConnection object to the Inventory window
@@ -264,6 +267,12 @@ class Admin_or_Librarian(QtWidgets.QMainWindow):
             # Pass the DatabaseConnection object to the Members window
             self.members_window = Members(self.db_connection)
         self.members_window.show()
+    
+    def logout(self):
+        for screen in screens:
+            screen.close()
+        self.close()
+        
 
 
 class Inventory(QtWidgets.QMainWindow):
