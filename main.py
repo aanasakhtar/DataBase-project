@@ -817,8 +817,6 @@ class SearchScreen(QtWidgets.QMainWindow):
         self.SearchPB.clicked.connect(self.search)
         self.ViewPB.clicked.connect(self.view) 
         self.RateABookPB.clicked.connect(self.rateABook)
-
-        print(username)
         self.ViewAllPB.clicked.connect(self.viewAll)
         self.IssuePB.clicked.connect(lambda: self.issue(username))
 
@@ -860,6 +858,7 @@ class SearchScreen(QtWidgets.QMainWindow):
                 self.BookTW.setItem(row_index, col_index, item)
     
     def viewAll(self):
+        self.BookTW.setRowCount(0)
         self.cursor.execute("select Book_ID, ISBN, Title, Genre, Author, Rating, Availability from Books")
 
         # Fetch all rows and populate the table
@@ -914,23 +913,24 @@ class SearchScreen(QtWidgets.QMainWindow):
 
 
     def rateABook(self):
-        print("in")
         selected_row = self.BookTW.currentRow()
         if selected_row != -1:  # Check if a row is selected
             book_id = self.BookTW.item(selected_row, 0).text() 
-            self.rateScreen = RateScreen(self.db, book_id)
+            self.rateScreen = RateScreen(self.db, book_id, self.viewAll)
             self.rateScreen.show()
         else:
             show_message(self, "Warning", "Please select a book to rate.")
 
 class RateScreen(QMainWindow):
-    def __init__(self, db_connection: DatabaseConnection, book_id):
+    def __init__(self, db_connection: DatabaseConnection, book_id, viewAll):
         super().__init__()
         uic.loadUi("Rate_a_book.ui", self)  # Load the UI for the "Rate a Book" screen
         
         # Initialize database connection and book ID
         self.db = db_connection
         self.book_id = book_id
+        self.viewAll = viewAll
+        
         
         # Set up QButtonGroup for radio buttons (rating)
         self.rating_group = QButtonGroup(self)
@@ -961,11 +961,16 @@ class RateScreen(QMainWindow):
             return
         # Perform the database update
         cursor = self.db.get_connection().cursor()
-        cursor.execute("UPDATE Books SET Rating = ? WHERE Book_ID = ?", (int(rating), int(book_id)))
+        cursor.execute("select Rating from Books where Book_ID = ?", (int(book_id), ))
+        prev_rating = cursor.fetchone()
+        new_rating = (int(prev_rating[0]) + int(rating)) / 2
+        cursor.execute("UPDATE Books SET Rating = ? WHERE Book_ID = ?", (new_rating, int(book_id)))
         self.db.get_connection().commit()
 
         # Show success message
         show_message(self, "Success", "Rating added, thank you!")
+        self.viewAll()
+        self.close()
 
     def cancelRating(self):
         """Close the window if the user cancels"""
