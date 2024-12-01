@@ -73,6 +73,25 @@
      <string>Librarian Main Screen</string>
     </property>
    </widget>
+   <widget class="QPushButton" name="LogOut_Button">
+    <property name="geometry">
+     <rect>
+      <x>440</x>
+      <y>316</y>
+      <width>56</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Arial</family>
+      <pointsize>8</pointsize>
+     </font>
+    </property>
+    <property name="text">
+     <string>LogOut</string>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
