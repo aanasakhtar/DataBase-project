@@ -16,9 +16,9 @@ screens = []
 
 class DatabaseConnection:
     def __init__(self):
-        # self.server = "DESKTOP-CHMOJM3\SQLEXPRESS" # Anas
+        self.server = "DESKTOP-CHMOJM3\SQLEXPRESS" # Anas
         # self.server = 'DESKTOP-9QAGOMJ\SQLSERVER1' # Hamza
-        self.server = 'LAPTOP-N8UU3FAP\\SQLSERVER1' #Zoraiz
+        # self.server = 'LAPTOP-N8UU3FAP\\SQLSERVER1' #Zoraiz
         self.database = 'DbFinal'
         self.connection = None
         self.cursor = None
@@ -785,7 +785,6 @@ class MemberScreen(QtWidgets.QMainWindow):
         """Open the BookARoom screen."""
         self.bookARoomWindow = BookARoom(self.db)  # Instantiate the BookARoom class
         self.bookARoomWindow.show()  # Show the BookARoom screen
-        self.close()  # Optionally close the current SearchScreen if desired
 
     def logout(self):
         self.close()
@@ -909,8 +908,9 @@ class SearchScreen(QtWidgets.QMainWindow):
         else:
             show_message(self, "Warning", "Please select a book to issue.")
     def loggingOut(self):
+        for screen in screens:
+            screen.close()
         self.close()
-        self.parent().close()
 
 
     def rateABook(self):
