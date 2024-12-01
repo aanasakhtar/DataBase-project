@@ -879,7 +879,7 @@ class SearchScreen(QtWidgets.QMainWindow):
             book_details = self.cursor.fetchone()
             if book_details:
                 # Show the details in a message box or separate window
-                details = f"ID: {book_details[0]}\nTitle: {book_details[1]}\nAuthor: {book_details[2]}\nGenre: {book_details[3]}\nStatus: {book_details[4]}"
+                details = f"ID: {book_details[0]}\nTitle: {book_details[1]}\nAuthor: {book_details[2]}\nGenre: {book_details[3]}\nAuthor: {book_details[4]}"
                 show_message(self, "Book Details", details)
             else:
                 show_message(self, "Warning", "Please select a book to view details.")
@@ -1078,11 +1078,11 @@ class BookARoom(QMainWindow):
         count_of_people = self.spinBox.value()
 
         if selected_room == "Select Room" or selected_slot == "Select Time Slot":
-            QtWidgets.QMessageBox.warning(self, "Error", "Please select a valid room and time slot.")
+            show_message(self, "Error", "Please select a valid room and time slot.")
             return
 
         if not username:
-            QtWidgets.QMessageBox.warning(self, "Error", "Please enter a username.")
+            show_message(self, "Error", "Please enter a username.")
             return
 
         # Check if the room and time slot exist in the Rooms table
@@ -1093,14 +1093,14 @@ class BookARoom(QMainWindow):
         room_data = self.cursor.fetchone()
 
         if room_data is None:
-            QtWidgets.QMessageBox.warning(self, "Error", "The room or time slot is unavailable or doesn't exist.")
+            show_message(self, "Error", "The room or time slot is unavailable or doesn't exist.")
             return
 
         room_capacity = room_data[0]
 
         # Check if the number of people is less than or equal to the room's capacity
         if count_of_people > room_capacity:
-            QtWidgets.QMessageBox.warning(self, "Error", f"The number of people ({count_of_people}) exceeds the room capacity ({room_capacity}). Please select a valid number of people.")
+            show_message(self, "Error", f"The number of people ({count_of_people}) exceeds the room capacity ({room_capacity}). Please select a valid number of people.")
             return
 
         # Insert booking into the database
@@ -1113,7 +1113,7 @@ class BookARoom(QMainWindow):
         member = self.cursor.fetchone()
 
         if member is None:
-            QtWidgets.QMessageBox.warning(self, "Error", "Invalid username. Please enter a valid username.")
+            show_message(self, "Error", "Invalid username. Please enter a valid username.")
             return
 
         # Proceed with booking
@@ -1133,7 +1133,7 @@ class BookARoom(QMainWindow):
         """, (selected_room, selected_slot))
         self.db.get_connection().commit()
 
-        QtWidgets.QMessageBox.information(self, "Success", "Room booked successfully!")
+        show_message(self, "Success", "Room booked successfully!")
         self.populateAvailableSlots()  # Refresh available slots
 
 
