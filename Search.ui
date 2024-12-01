@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>800</width>
-    <height>600</height>
+    <width>665</width>
+    <height>548</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -17,10 +17,10 @@
    <widget class="QPushButton" name="IssuePB">
     <property name="geometry">
      <rect>
-      <x>170</x>
-      <y>40</y>
-      <width>56</width>
-      <height>17</height>
+      <x>480</x>
+      <y>326</y>
+      <width>71</width>
+      <height>21</height>
      </rect>
     </property>
     <property name="text">
@@ -30,10 +30,10 @@
    <widget class="QPushButton" name="ViewAllPB">
     <property name="geometry">
      <rect>
-      <x>340</x>
-      <y>40</y>
+      <x>550</x>
+      <y>256</y>
       <width>56</width>
-      <height>17</height>
+      <height>21</height>
      </rect>
     </property>
     <property name="text">
@@ -43,10 +43,10 @@
    <widget class="QPushButton" name="LogoutPB">
     <property name="geometry">
      <rect>
-      <x>520</x>
-      <y>40</y>
+      <x>550</x>
+      <y>480</y>
       <width>56</width>
-      <height>17</height>
+      <height>31</height>
      </rect>
     </property>
     <property name="text">
@@ -56,9 +56,9 @@
    <widget class="QTableWidget" name="BookTW">
     <property name="geometry">
      <rect>
-      <x>140</x>
-      <y>70</y>
-      <width>470</width>
+      <x>40</x>
+      <y>50</y>
+      <width>571</width>
       <height>192</height>
      </rect>
     </property>
@@ -96,10 +96,10 @@
    <widget class="QPushButton" name="SearchPB">
     <property name="geometry">
      <rect>
-      <x>510</x>
-      <y>300</y>
+      <x>390</x>
+      <y>440</y>
       <width>56</width>
-      <height>17</height>
+      <height>21</height>
      </rect>
     </property>
     <property name="text">
@@ -109,10 +109,10 @@
    <widget class="QPushButton" name="ViewPB">
     <property name="geometry">
      <rect>
-      <x>510</x>
-      <y>350</y>
+      <x>480</x>
+      <y>256</y>
       <width>56</width>
-      <height>17</height>
+      <height>21</height>
      </rect>
     </property>
     <property name="text">
@@ -122,10 +122,10 @@
    <widget class="QPushButton" name="RateABookPB">
     <property name="geometry">
      <rect>
-      <x>510</x>
-      <y>400</y>
-      <width>56</width>
-      <height>17</height>
+      <x>480</x>
+      <y>360</y>
+      <width>71</width>
+      <height>21</height>
      </rect>
     </property>
     <property name="text">
@@ -135,9 +135,9 @@
    <widget class="QGroupBox" name="groupBox">
     <property name="geometry">
      <rect>
-      <x>160</x>
-      <y>290</y>
-      <width>270</width>
+      <x>190</x>
+      <y>280</y>
+      <width>261</width>
       <height>140</height>
      </rect>
     </property>
@@ -240,7 +240,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>800</width>
+     <width>665</width>
      <height>18</height>
     </rect>
    </property>
