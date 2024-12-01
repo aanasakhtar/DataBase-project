@@ -155,6 +155,7 @@ class SignIn(QtWidgets.QMainWindow):
 
         # Store the database connection object
         self.db = db
+        self.librarian_id = None  # Initialize librarian_id
 
         self.usernameF = self.findChild(QtWidgets.QLineEdit, "Enter_Username_Edit")
         self.passwordF = self.findChild(QtWidgets.QLineEdit, "Enter_Password_Edit")
@@ -172,27 +173,30 @@ class SignIn(QtWidgets.QMainWindow):
             self.signInAsMember(self.username, self.password)
 
     def signInAsLibrarian(self, username, password):
+        if not username or not password:
+            show_message(self, "Error", "Please enter both username and password.")
+            return
+    
         sql_query = """
-            SELECT Librarian_Password FROM Library_Staff WHERE Librarian_Name = ?
+            select Librarian_ID, Librarian_Password from Library_Staff where Librarian_Name = ?
         """
         cursor = self.db.get_cursor()  # Use the cursor from DatabaseConnection
-        try:
-            cursor.execute(sql_query, (username,))
-            result = cursor.fetchone()
-            
-            if result is None:
-                show_message(self, "Error", "No username found")
-                return
-            if password != result[0]:
-                show_message(self, "Error", "Incorrect Password")
-                return
+        cursor.execute(sql_query, (username,))
+        result = cursor.fetchone()
 
-            self.openLibrarianScreen()
-        except Exception as e:
-            show_message(self, "Error", f"Database error: {e}")
+        if result is None:
+            show_message(self, "Error", "No username found")
+            return
+        if password != result[1]:  # Use the second column (password) to check
+            show_message(self, "Error", "Incorrect Password")
+            return
+
+        self.librarian_id = result[0]
+        self.openLibrarianScreen()
+
 
     def openLibrarianScreen(self):
-        self.librarianScreen = Admin_or_Librarian(self.db)  # Pass db to Librarian screen
+        self.librarianScreen = Admin_or_Librarian(self.db, self.librarian_id)  # Pass db and librarian_id to the screen
         self.librarianScreen.show()
 
     def signInAsMember(self, username, password):
@@ -200,21 +204,18 @@ class SignIn(QtWidgets.QMainWindow):
             SELECT Member_Password FROM Member_Info WHERE Member_Name = ?
         """
         cursor = self.db.get_cursor()  # Correctly retrieve the cursor here
-        try:
-            cursor.execute(sql_query, (username,))
-            result = cursor.fetchone()
-            
-            if result is None:
-                show_message(self, "Error", "No username found")
-                return
-            
-            if password != result[0]:
-                show_message(self, "Error", "Incorrect Password")
-                return
-            
-            self.openMemberScreen()
-        except Exception as e:
-            show_message(self, "Error", f"Database error: {e}")
+        cursor.execute(sql_query, (username,))
+        result = cursor.fetchone()
+        
+        if result is None:
+            show_message(self, "Error", "No username found")
+            return
+        
+        if password != result[0]:
+            show_message(self, "Error", "Incorrect Password")
+            return
+        
+        self.openMemberScreen()
 
     def openMemberScreen(self): 
         self.memberScreen = MemberScreen(self.usernameF.text(), self.db)  # Pass db to Member screen
@@ -226,12 +227,13 @@ class SignIn(QtWidgets.QMainWindow):
 ############################################ MODULE 2 ################################################### 
 
 class Admin_or_Librarian(QtWidgets.QMainWindow):  
-    def __init__(self, db_connection: DatabaseConnection):
+    def __init__(self, db_connection: DatabaseConnection, librarian_id):
         super().__init__() 
         uic.loadUi('Admin_or_Librarian.ui', self)
 
         # Store the shared DatabaseConnection object
         self.db_connection = db_connection
+        self.librarian_id = librarian_id
 
         # To store same instances for future use
         self.inventory_window = None
@@ -244,7 +246,7 @@ class Admin_or_Librarian(QtWidgets.QMainWindow):
     def open_inventory(self):
         if self.inventory_window is None:
             # Pass the DatabaseConnection object to the Inventory window
-            self.inventory_window = Inventory(self.db_connection)
+            self.inventory_window = Inventory(self.db_connection, self.librarian_id)
         self.inventory_window.show()
 
     def open_members(self):
@@ -255,12 +257,13 @@ class Admin_or_Librarian(QtWidgets.QMainWindow):
 
 
 class Inventory(QtWidgets.QMainWindow):
-    def __init__(self, db_connection: DatabaseConnection, parent=None):
+    def __init__(self, db_connection: DatabaseConnection, librarian_id, parent=None):
         super().__init__(parent)  # Pass the parent to the parent class constructor
         uic.loadUi('Inventory.ui', self)
 
         # Store the shared DatabaseConnection object
         self.db_connection = db_connection
+        self.librarian_id = librarian_id
 
         # To store same instances for future use
         self.room_inventory_window = None
@@ -278,9 +281,10 @@ class Inventory(QtWidgets.QMainWindow):
 
     def open_book_inventory(self):
         if self.book_inventory_window is None:
-            # Pass the full DatabaseConnection object to the Book_Inventory window
-            self.book_inventory_window = Book_Inventory(self.db_connection)
+            # Pass both db_connection and librarian_id to the Book_Inventory window
+            self.book_inventory_window = Book_Inventory(self.db_connection, self.librarian_id)
         self.book_inventory_window.show()
+
 
 
 class Room_inventory(QtWidgets.QMainWindow):
@@ -309,24 +313,24 @@ class Room_inventory(QtWidgets.QMainWindow):
         self.room_table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
 
     def populate_room_table(self):
-        cursor = self.db_connection.get_cursor()  # Get the cursor from DatabaseConnection
+        # Get the cursor from DatabaseConnection
+        cursor = self.db_connection.get_cursor()
         
         # Query to fetch room details along with the username of the person who booked the room
         query = """
         SELECT r.Room_No, r.Room_Availability, r.Capacity, m.Member_Name
         FROM Rooms r
-        LEFT JOIN Bookings b ON r.Room_No = b.Room_No
+        LEFT JOIN Bookings b ON r.Room_No = b.Room_No AND r.Time_Slot = b.Booking_Time_Slot
         LEFT JOIN Member_Info m ON b.Member_ID = m.Member_ID
         """
+        
+        # Execute the query and fetch all results
         cursor.execute(query)
         rooms = cursor.fetchall()  # Get all rows from the query
 
         # Clear the table before populating it with new data
         self.room_table.clearContents()
         self.room_table.setRowCount(0)
-
-        # Set the row count based on the number of rooms in the result
-        self.room_table.setRowCount(len(rooms))
 
         # Populate the table with room data
         for row_idx, room in enumerate(rooms):
@@ -339,6 +343,7 @@ class Room_inventory(QtWidgets.QMainWindow):
             capacity_item = QtWidgets.QTableWidgetItem(str(capacity))
 
             # Add items to the respective columns
+            self.room_table.insertRow(row_idx)  # Dynamically add a row for each entry
             self.room_table.setItem(row_idx, 0, room_no_item)
             self.room_table.setItem(row_idx, 1, availability_item)
             self.room_table.setItem(row_idx, 2, booked_by_item)
@@ -463,42 +468,88 @@ class Room_inventory(QtWidgets.QMainWindow):
 
 
 class Book_Inventory(QtWidgets.QMainWindow):
-    def __init__(self, db, parent=None):
-        super().__init__(parent)  # Pass the parent to the parent class constructor
+    def __init__(self, db_connection: DatabaseConnection, librarian_id, parent=None):
+        super().__init__(parent)
         uic.loadUi('book_inventory.ui', self)
 
-        # Store the shared database connection
-        self.db = db
+        # Store the shared database connection and librarian ID
+        self.db_connection = db_connection
+        self.librarian_id = librarian_id  # Store the current logged-in librarian ID
 
-        # Check if db is a connection and create a cursor
-        if isinstance(self.db, pyodbc.Connection):
-            self.cursor = self.db.cursor()  # Create a cursor object for executing queries
-        else:
-            self.cursor = self.db  # If it's already a cursor, use it directly
+        # To store instances for future use
+        self.issued_books_window = None
+        self.add_book_window = None
 
-        # Find children widgets from the UI file
+        # Access widgets from the UI file
         self.books_table = self.findChild(QtWidgets.QTableWidget, 'Books_Table')
         self.add_book_button = self.findChild(QtWidgets.QPushButton, 'AddBook_Button')
         self.issued_books_button = self.findChild(QtWidgets.QPushButton, 'IssuedBooks_Button')
 
-        # Connect the buttons to their respective methods
+        # Connect buttons to their respective methods
         self.issued_books_button.clicked.connect(self.show_issued_books)
         self.add_book_button.clicked.connect(self.open_add_book_screen)
 
-        # To store same instances for future use
-        self.issued_books_window = None
-        self.add_book_window = None
+        # Populate the books table when the window is initialized
+        self.populate_books_table()
+
+    def populate_books_table(self):
+        cursor = self.db_connection.get_cursor()  # Get the cursor from DatabaseConnection
+
+        # Query to fetch book details
+        query = """
+        SELECT ISBN, Title, Genre, Author, Rating, Availability, AddedBy_Librarian_ID
+        FROM Books
+        """
+        cursor.execute(query)
+        books = cursor.fetchall()  # Get all rows from the query
+
+        # Clear the table before populating it with new data
+        self.books_table.clearContents()
+        self.books_table.setRowCount(0)
+
+        # Set the row count based on the number of books in the result
+        self.books_table.setRowCount(len(books))
+
+        # Populate the table with book data
+        for row_idx, book in enumerate(books):
+            isbn, title, genre, author, rating, availability, added_by = book
+
+            # Create table items for each column
+            isbn_item = QtWidgets.QTableWidgetItem(str(isbn))
+            title_item = QtWidgets.QTableWidgetItem(title)
+            genre_item = QtWidgets.QTableWidgetItem(genre)
+            author_item = QtWidgets.QTableWidgetItem(author)
+            rating_item = QtWidgets.QTableWidgetItem(str(rating))
+            availability_item = QtWidgets.QTableWidgetItem(availability)
+            added_by_item = QtWidgets.QTableWidgetItem(str(added_by))
+
+            # Add items to the respective columns
+            self.books_table.setItem(row_idx, 0, isbn_item)
+            self.books_table.setItem(row_idx, 1, title_item)
+            self.books_table.setItem(row_idx, 2, genre_item)
+            self.books_table.setItem(row_idx, 3, author_item)
+            self.books_table.setItem(row_idx, 4, rating_item)
+            self.books_table.setItem(row_idx, 5, added_by_item)
+            self.books_table.setItem(row_idx, 6, availability_item)
+
+        # Set the table as uneditable and disable selection
+        self.books_table.setEditTriggers(QtWidgets.QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.books_table.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.NoSelection)
+
+        # Resize columns to fit contents
+        self.books_table.resizeColumnsToContents()
+
 
     def show_issued_books(self):
         if self.issued_books_window is None:
-            # Create and show the issued books window
-            self.issued_books_window = QtWidgets.QMainWindow(self)  # Parent is self
+            # Create the issued books window
+            self.issued_books_window = QtWidgets.QMainWindow(self)
             uic.loadUi('Issued_book.ui', self.issued_books_window)
 
-            # Reference the QTableWidget
+            # Reference the QTableWidget in the issued books window
             table_widget = self.issued_books_window.findChild(QtWidgets.QTableWidget, 'tableWidget')
 
-            # Set up database query to fetch issued books details
+            # Query to fetch issued books data
             query = """
             SELECT 
                 b.ISBN,
@@ -515,34 +566,35 @@ class Book_Inventory(QtWidgets.QMainWindow):
                 Member_Info m ON ib.Member_ID = m.Member_ID;
             """
 
-            cursor = self.db.cursor()
+            # Execute the query and fetch data
+            cursor = self.db_connection.get_cursor()
             cursor.execute(query)
             records = cursor.fetchall()
 
-            # Populate the QTableWidget
-            table_widget.setRowCount(0)  # Clear any existing rows
+            # Populate the table widget
+            table_widget.setRowCount(0)  # Clear existing rows
+            table_widget.setRowCount(len(records))
             for row_idx, record in enumerate(records):
-                table_widget.insertRow(row_idx)  # Insert a new row
                 for col_idx, data in enumerate(record):
-                    table_widget.setItem(row_idx, col_idx, QtWidgets.QTableWidgetItem(str(data)))
+                    item = QtWidgets.QTableWidgetItem(str(data) if data is not None else "")
+                    table_widget.setItem(row_idx, col_idx, item)
 
-            # Optionally set column headers
-            table_widget.setHorizontalHeaderLabels([
-                "ISBN", "Title", "Issued To", "Issue Date", "Due Date", "Return Date"
-            ])
+            table_widget.resizeColumnsToContents()
+            table_widget.setEditTriggers(QtWidgets.QAbstractItemView.EditTrigger.NoEditTriggers)
+            table_widget.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.NoSelection)
 
-            # Show the window
-            self.issued_books_window.show()
+        # Show the issued books window
+        self.issued_books_window.show()
+
 
     def open_add_book_screen(self):
-        add_book_window = AddBookScreen(self.db, librarian_id=1, parent=self) # New instance each time
-
+        """Open the Add Book screen with the current librarian ID."""
+        add_book_window = AddBookScreen(self.db_connection, self.librarian_id, parent=self)
         add_book_window.show()
 
 
-
 class AddBookScreen(QtWidgets.QMainWindow):
-    def __init__(self, db, librarian_id, parent=None):
+    def __init__(self, db_connection: DatabaseConnection, librarian_id, parent=None):
         super().__init__(parent)
         uic.loadUi('Add_book.ui', self)
 
@@ -555,8 +607,8 @@ class AddBookScreen(QtWidgets.QMainWindow):
 
         # Store the librarian's ID and the shared db connection for future use
         self.librarian_id = librarian_id
-        self.db = db
-        self.cursor = self.db.cursor()  # Create a cursor object for executing queries
+        self.db_connection = db_connection  # Using the shared db connection
+        self.cursor = self.db_connection.get_cursor()  # Get the cursor from the shared connection
 
         # Populate the genre combobox
         self.populate_genre_combobox()
@@ -566,71 +618,105 @@ class AddBookScreen(QtWidgets.QMainWindow):
 
     def populate_genre_combobox(self):
         """Populates the genre combobox with distinct genres from the database."""
-        try:
-            query = "SELECT DISTINCT genre FROM Books"  # Adjust the query as needed
-            self.cursor.execute(query)
-            genres = [row[0] for row in self.cursor.fetchall()]
-            self.genre_combobox.addItems(genres)
-        except Exception as e:
-            QtWidgets.QMessageBox.warning(self, "Error", f"Could not load genres: {e}")
-
+        query = "SELECT DISTINCT genre FROM Books"
+        self.cursor.execute(query)
+        genres = [row[0] for row in self.cursor.fetchall()]
+        self.genre_combobox.addItems(genres)
+    
     def add_book_to_database(self):
-        """Adds a new book to the database using the provided details."""
-        # Get inputs from the form
-        isbn = self.isbn_edit.text().strip()
-        title = self.title_edit.text().strip()
-        genre = self.genre_combobox.currentText().strip()
-        author = self.author_edit.text().strip()
+        """Add the book to the database using the values entered in the UI."""
+        isbn = self.isbn_edit.text()
+        title = self.title_edit.text()
+        genre = self.genre_combobox.currentText()
+        author = self.author_edit.text()
 
-        # Validation for empty fields
+        # Check if all required fields are filled
         if not isbn or not title or not genre or not author:
-            QtWidgets.QMessageBox.warning(self, "Validation Error", "All fields must be filled.")
+            QtWidgets.QMessageBox.warning(self, "Input Error", "Please fill in all fields.")
             return
-
-        # Set initial values for rating and availability
-        rating = None  # NULL value for rating
-        availability = 'Available'
-
+        
+        availability = "Available"
+        
+        # SQL query to insert the new book
         query = """
-        INSERT INTO Books (isbn, title, genre, author, rating, added_by, availability)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO Books (ISBN, Title, Genre, Author, Availability, AddedBy_Librarian_ID)
+        VALUES (?, ?, ?, ?, ?, ?)
         """
+        # Execute the query with the provided values
+        self.cursor.execute(query, (isbn, title, genre, author, availability, self.librarian_id))
+        self.cursor.connection.commit()  # Commit the transaction to the database
 
-        self.cursor.execute(query, (isbn, title, genre, author, rating, self.librarian_id, availability))
-        self.db.commit()
+        # Show a success message
+        QtWidgets.QMessageBox.information(self, "Success", "Book added successfully.")
+        self.close()  # Close the add book screen after success
 
-        QtWidgets.QMessageBox.information(self, "Success", "Book added successfully!")
-        self.close()  # Close the Add Book window
-
+        # # Now, call the method to refresh the book inventory table in Book_Inventory
+        if self.parent():
+            self.parent().populate_books_table()
 
 
 class Members(QtWidgets.QMainWindow):
-    def __init__(self, db, parent=None):
+    def __init__(self, db_connection: DatabaseConnection, parent=None):
         super().__init__(parent)
         uic.loadUi('Members.ui', self)
 
-        self.db = db
-        self.cursor = self.db.cursor()
+        # Store the database connection object
+        self.db_connection = db_connection
+        self.cursor = self.db_connection.get_cursor()  # Use the cursor from the DatabaseConnection object
 
+        # Connect the 'BlockButton' to the block_member function
         self.BlockButton.clicked.connect(self.block_member)
 
+        # Populate the Members table
+        self.populate_members_table()
+
+    def populate_members_table(self):
+        """Fetch data from the database and populate the Members_Table."""
+        query = """
+        SELECT m.Member_ID, m.Member_Name, m.Member_Password, m.Member_Status, b.Title
+        FROM Member_Info m
+        LEFT JOIN Issued_Books ib ON m.Member_ID = ib.Member_ID
+        LEFT JOIN Books b ON ib.Book_ID = b.Book_ID
+        """
+        self.cursor.execute(query)
+        rows = self.cursor.fetchall()
+
+        # Set row count for the table
+        self.Members_Table.setRowCount(len(rows))
+
+        # Loop through the rows and populate the table
+        for row_idx, row in enumerate(rows):
+            member_id = row[0]
+            member_name = row[1]
+            member_password = row[2]
+            status = row[3]
+            book_issued = row[4] if row[4] else 'None'  # If no book issued, display 'None'
+
+            self.Members_Table.setItem(row_idx, 0, QtWidgets.QTableWidgetItem(str(member_id)))  # Users (Member_ID)
+            self.Members_Table.setItem(row_idx, 1, QtWidgets.QTableWidgetItem(member_name))  # Username (Member_Name)
+            self.Members_Table.setItem(row_idx, 2, QtWidgets.QTableWidgetItem(str(book_issued)))  # Book Issued (Book Title)
+            self.Members_Table.setItem(row_idx, 3, QtWidgets.QTableWidgetItem(status))  # Status (Member_Status)
+
     def block_member(self):
-        """Block the selected member by changing their status to 'Inactive' and close the window."""
+        """Block the selected member by changing their status to 'Inactive' and update the UI."""
         selected_row = self.Members_Table.currentRow()
 
         if selected_row != -1:  # If a row is selected
-            # Username is used as a unique identification for query
-            username = self.Members_Table.item(selected_row, 1).text()
-            current_status = self.Members_Table.item(selected_row, 3).text()
+            # Username is used as a unique identification for the query
+            username = self.Members_Table.item(selected_row, 1).text()  # Assuming username is in column 1
+            current_status = self.Members_Table.item(selected_row, 3).text()  # Assuming status is in column 3
 
             if current_status != "Inactive":
-                # Update the status of the member to 'Inactive' in database
-                query = "UPDATE Members SET Status = ? WHERE ISBN = ?"
+                # Update the status of the member to 'Inactive' in the database
+                query = "UPDATE Member_Info SET Member_Status = ? WHERE Member_Name = ?"
                 self.cursor.execute(query, ('Inactive', username))
-                self.db.commit()  # Commit the transaction
+                self.db_connection.get_connection().commit()  # Commit the transaction to the database
 
-                # Update status in UI
+                # Update status in the UI (Table)
                 self.Members_Table.item(selected_row, 3).setText("Inactive")
+                QtWidgets.QMessageBox.information(self, "Success", f"Member {username} has been blocked.")
+            else:
+                QtWidgets.QMessageBox.warning(self, "Error", "This member is already inactive.")
 
 
 ############################################ MODULE 3 ################################################### 
