@@ -879,7 +879,7 @@ class SearchScreen(QtWidgets.QMainWindow):
             book_details = self.cursor.fetchone()
             if book_details:
                 # Show the details in a message box or separate window
-                details = f"ID: {book_details[0]}\nTitle: {book_details[1]}\nAuthor: {book_details[2]}\nGenre: {book_details[3]}\nAuthor: {book_details[4]}"
+                details = f"ID: {book_details[0]}\nTitle: {book_details[1]}\nAuthor: {book_details[2]}\nGenre: {book_details[3]}\nAuthor: {book_details[4]}\nAvailability: {book_details[5]}"
                 show_message(self, "Book Details", details)
             else:
                 show_message(self, "Warning", "Please select a book to view details.")
