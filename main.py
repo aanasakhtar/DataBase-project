@@ -859,16 +859,19 @@ class SearchScreen(QtWidgets.QMainWindow):
         self.mainScreen = UI()
         self.mainScreen.show()
 
-class BookARoom(QtWidgets.QWidget):
-    def __init__(self, db):
+class BookARoom(QMainWindow):
+    def __init__(self, db_connection: DatabaseConnection):
         super().__init__()
         uic.loadUi("Book_a_room.ui", self)  # Load the UI for the "Book a Room" screen
 
-        self.db = db  # Make sure your connection string is correct
+        self.db = db_connection  # Make sure your connection string is correct
+        self.cursor = db_connection.get_cursor()
         self.populateRoomComboBox()  # Populate room numbers when UI loads
+        self.comboBox_2.currentTextChanged.connect(self.updateTimeSlots)
+        self.populateRoomNumbers()  # Call this during the initialization
         self.pushButton.clicked.connect(self.bookRoom)  # Connect the confirm button to the booking function
 
-        self.comboBox.currentIndexChanged.connect(self.updateTimeSlots)  # Update available time slots when room is selected
+        #self.comboBox.currentIndexChanged.connect(self.updateTimeSlots)  # Update available time slots when room is selected
 
     def populateRoomComboBox(self):
         """Populate room numbers in comboBox."""
@@ -879,19 +882,78 @@ class BookARoom(QtWidgets.QWidget):
             self.comboBox_2.addItem(str(room[0]))
 
     def updateTimeSlots(self):
-        """Update available time slots based on selected room."""
+        """Update available time slots based on the selected room."""
         self.comboBox.clear()  # Clear the time slots comboBox
-        room_no = self.comboBox_2.currentText()
+        selected_room = self.comboBox_2.currentText()  # Get the selected room number
 
-        if room_no == "Select Room":
+    # Check if a valid room number is selected
+        if selected_room == "Select Room" or not selected_room:
+            self.comboBox.addItem("Select Time Slot")
             return
 
-        self.comboBox.addItem("Select Time Slot")  # Default option
-        self.cursor.execute("SELECT Time_Slot FROM Rooms WHERE Room_No = ? AND Room_Availability = 'Available'", (room_no,))
-        time_slots = self.cursor.fetchall()
-        
+    # Query the database for available time slots for the selected room
+        self.cursor.execute("""
+            SELECT Time_Slot 
+            FROM Rooms 
+            WHERE Room_No = ? AND Room_Availability = 'Available'
+        """, (selected_room,))
+    
+        time_slots = self.cursor.fetchall()  # Fetch all matching records
+
+        if not time_slots:
+            # If no time slots are available, show a message in the comboBox
+            self.comboBox.addItem("No available slots")
+            return
+
+        # Add "Select Time Slot" as the default option
+        self.comboBox.addItem("Select Time Slot")
+    
+        # Populate the comboBox with available time slots
         for slot in time_slots:
-            self.comboBox.addItem(slot[0])
+            self.comboBox.addItem(slot[0])  # slot[0] because fetchall() returns a list of tuples
+
+
+    def populateAvailableSlots(self):
+        """Refresh available time slots for the selected room."""
+        selected_room = self.comboBox_2.currentText()  # Get selected room from the dropdown
+
+        if selected_room == "Select Room" or not selected_room:
+            self.comboBox.clear()  # Clear the dropdown if no valid room is selected
+            self.comboBox.addItem("Select Time Slot")
+            return
+
+        self.comboBox.clear()  # Clear the existing items in the dropdown
+        self.comboBox.addItem("Select Time Slot")  # Add a default placeholder item
+
+        # Fetch available slots for the selected room
+        self.cursor.execute("""
+            SELECT DISTINCT Time_Slot 
+            FROM Rooms 
+            WHERE Room_No = ? AND Room_Availability = 'Available'
+        """, (selected_room,))
+        available_slots = self.cursor.fetchall()
+
+        # Populate the comboBox with available time slots
+        for slot in available_slots:
+            self.comboBox.addItem(slot[0])  # Add each available slot
+
+
+    def populateRoomNumbers(self):
+        """Populate the room numbers in the Room Selection comboBox."""
+        self.comboBox_2.clear()  # Clear the dropdown to avoid duplicates
+        self.comboBox_2.addItem("Select Room")  # Add a default placeholder
+
+        # Query to fetch unique room numbers
+        self.cursor.execute("""
+            SELECT DISTINCT Room_No
+            FROM Rooms
+        """)
+        rooms = self.cursor.fetchall()
+
+        #Populate the comboBox with unique room numbers
+        for room in rooms:
+            self.comboBox_2.addItem(str(room[0]))
+
 
     def bookRoom(self):
         """Book the selected room and update the database."""
@@ -929,7 +991,9 @@ class BookARoom(QtWidgets.QWidget):
         # Insert booking into the database
         # First, check if the member has a valid ID in the Members table
         self.cursor.execute("""
-            SELECT Member_ID FROM Members WHERE Username = ?
+            SELECT Member_ID 
+            FROM Member_info 
+            WHERE Member_Name = ?
         """, (username,))
         member = self.cursor.fetchone()
 
@@ -944,7 +1008,7 @@ class BookARoom(QtWidgets.QWidget):
             INSERT INTO Bookings (Member_ID, Room_No, Booking_Date, Booking_Time_Slot)
             VALUES (?, ?, GETDATE(), ?)
         """, (member_id, selected_room, selected_slot))
-        self.connection.commit()
+        self.db.get_connection().commit()
 
         # Mark the room slot as 'Booked' in Rooms table
         self.cursor.execute("""
@@ -952,7 +1016,7 @@ class BookARoom(QtWidgets.QWidget):
             SET Room_Availability = 'Booked'
             WHERE Room_No = ? AND Time_Slot = ?
         """, (selected_room, selected_slot))
-        self.connection.commit()
+        self.db.get_connection().commit()
 
         QtWidgets.QMessageBox.information(self, "Success", "Room booked successfully!")
         self.populateAvailableSlots()  # Refresh available slots
