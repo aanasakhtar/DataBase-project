@@ -92,49 +92,26 @@
      <string>5</string>
     </property>
    </widget>
-   <widget class="QLabel" name="label_2">
-    <property name="geometry">
-     <rect>
-      <x>80</x>
-      <y>150</y>
-      <width>55</width>
-      <height>16</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Review:</string>
-    </property>
-   </widget>
-   <widget class="QPlainTextEdit" name="Review_Text">
-    <property name="geometry">
-     <rect>
-      <x>160</x>
-      <y>150</y>
-      <width>421</width>
-      <height>161</height>
-     </rect>
-    </property>
-   </widget>
    <widget class="QLabel" name="label_3">
     <property name="geometry">
      <rect>
-      <x>80</x>
-      <y>360</y>
+      <x>130</x>
+      <y>120</y>
       <width>211</width>
       <height>16</height>
      </rect>
     </property>
     <property name="text">
-     <string>Would You like to rate this book?</string>
+     <string>Confirm your rating?</string>
     </property>
    </widget>
    <widget class="QPushButton" name="Yes_Btn">
     <property name="geometry">
      <rect>
-      <x>320</x>
-      <y>360</y>
-      <width>93</width>
-      <height>28</height>
+      <x>310</x>
+      <y>120</y>
+      <width>80</width>
+      <height>20</height>
      </rect>
     </property>
     <property name="text">
@@ -144,10 +121,10 @@
    <widget class="QPushButton" name="No_Btn">
     <property name="geometry">
      <rect>
-      <x>450</x>
-      <y>360</y>
-      <width>93</width>
-      <height>28</height>
+      <x>440</x>
+      <y>120</y>
+      <width>80</width>
+      <height>20</height>
      </rect>
     </property>
     <property name="text">

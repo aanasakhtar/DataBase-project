@@ -1,6 +1,6 @@
 from PyQt6 import QtWidgets, uic, QtCore
 from PyQt6.QtCore import Qt, QDate
-from PyQt6.QtWidgets import QMessageBox, QApplication, QMainWindow, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget, QHeaderView, QAbstractItemView
+from PyQt6.QtWidgets import QMessageBox,QButtonGroup, QApplication, QMainWindow, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget, QHeaderView, QAbstractItemView
 import sys
 import pyodbc
 
@@ -10,6 +10,8 @@ def show_message(parent, title, message):
     msg_box.setWindowTitle(title)
     msg_box.setText(message)
     msg_box.exec()
+
+screens = []
 
 
 class DatabaseConnection:
@@ -142,6 +144,8 @@ class CreateAccount(QtWidgets.QMainWindow):
 
         self.db.get_connection().commit()  # Commit using the shared connection
 
+        self.close()
+
 
 
     
@@ -204,22 +208,28 @@ class SignIn(QtWidgets.QMainWindow):
             SELECT Member_Password FROM Member_Info WHERE Member_Name = ?
         """
         cursor = self.db.get_cursor()  # Correctly retrieve the cursor here
-        cursor.execute(sql_query, (username,))
-        result = cursor.fetchone()
-        
-        if result is None:
-            show_message(self, "Error", "No username found")
-            return
-        
-        if password != result[0]:
-            show_message(self, "Error", "Incorrect Password")
-            return
-        
-        self.openMemberScreen()
+        try:
+            cursor.execute(sql_query, (username,))
+            result = cursor.fetchone()
+            
+            if result is None:
+                show_message(self, "Error", "No username found")
+                return
+            
+            if password != result[0]:
+                show_message(self, "Error", "Incorrect Password")
+                return
+            
+            self.openMemberScreen()
+        except Exception as e:
+            show_message(self, "Error", f"Database error: {e}")
+
 
     def openMemberScreen(self): 
-        self.memberScreen = MemberScreen(self.usernameF.text())
+        self.memberScreen = MemberScreen(self.usernameF.text(), self.db)  # Pass db to Member screen
         self.memberScreen.show()
+    def logout(self):
+        self.close()
 
 
 
@@ -768,6 +778,9 @@ class MemberScreen(QtWidgets.QMainWindow):
         self.bookARoomWindow.show()  # Show the BookARoom screen
         self.close()  # Optionally close the current SearchScreen if desired
 
+    def logout(self):
+        self.close()
+        self.parent().logout()
 
 class SearchScreen(QtWidgets.QMainWindow):
     def __init__(self, username):
@@ -781,18 +794,21 @@ class SearchScreen(QtWidgets.QMainWindow):
         self.db = DatabaseConnection()
         self.cursor = self.db.get_cursor()
 
-        self.cursor.execute("select * from Books")
-
+        self.cursor.execute("select Book_ID, ISBN, Title, Genre, Author, Rating, Availability from Books")
         # Fetch all rows and populate the table
+        self.BookTW.setColumnCount(7)  # Adjust to match the number of columns in the data
+        self.BookTW.setHorizontalHeaderLabels(['Book_ID', 'ISBN', 'Title', 'Genre', 'Author', 'Rating', 'Availability'])
+        # self.BookTW.resizeColumnsToContents()  # Automatically adjust column widths
+        # Populate the table widget
         for row_index, row_data in enumerate(self.cursor.fetchall()):
             self.BookTW.insertRow(row_index)
-            for col_index, cell_data in enumerate(row_data):
+            for col_index, cell_data in enumerate(row_data):  # No slicing; include all columns
                 item = QTableWidgetItem(str(cell_data))
                 self.BookTW.setItem(row_index, col_index, item)
 
         self.SearchPB.clicked.connect(self.search)
         self.ViewPB.clicked.connect(self.view) 
-        self.RateABookPB.clicked.connect(lambda: self.rateABook) # Yet to be completed
+        self.RateABookPB.clicked.connect(self.rateABook)
 
         print(username)
         self.ViewAllPB.clicked.connect(self.viewAll)
@@ -801,7 +817,7 @@ class SearchScreen(QtWidgets.QMainWindow):
         self.LogoutPB.clicked.connect(self.loggingOut)
 
     def search(self):
-        sqlQuery = "select * from Books"  # Removed "where" initially
+        sqlQuery = "select Book_ID, ISBN, Title, Genre, Author, Rating, Availability from Books" 
         parameters = []
 
         # Add conditions to the WHERE clause only if relevant fields are filled
@@ -823,8 +839,6 @@ class SearchScreen(QtWidgets.QMainWindow):
         if conditions:
             sqlQuery += " WHERE " + " AND ".join(conditions)
 
-        print(sqlQuery)  # For debugging
-
         self.cursor.execute(sqlQuery, parameters)
 
         # Clear existing rows in the table before populating with new data
@@ -833,20 +847,19 @@ class SearchScreen(QtWidgets.QMainWindow):
         # Populate table with filtered rows
         for row_index, row_data in enumerate(self.cursor.fetchall()):
             self.BookTW.insertRow(row_index)
-            for col_index, cell_data in enumerate(row_data):
+            for col_index, cell_data in enumerate(row_data):  # No slicing; include all columns
                 item = QTableWidgetItem(str(cell_data))
                 self.BookTW.setItem(row_index, col_index, item)
-
     
     def viewAll(self):
-        self.cursor.execute("select * from Books")
+        self.cursor.execute("select Book_ID, ISBN, Title, Genre, Author, Rating, Availability from Books")
 
         # Fetch all rows and populate the table
         for row_index, row_data in enumerate(self.cursor.fetchall()):
             self.BookTW.insertRow(row_index)
-            for col_index, cell_data in enumerate(row_data):
+            for col_index, cell_data in enumerate(row_data):  # No slicing; include all columns
                 item = QTableWidgetItem(str(cell_data))
-                self.bookTW.setItem(row_index, col_index, item)
+                self.BookTW.setItem(row_index, col_index, item)
 
     def view(self):
         """View detailed information about the selected book."""
@@ -870,7 +883,8 @@ class SearchScreen(QtWidgets.QMainWindow):
             user_id = self.cursor.fetchone()
             user_id = user_id[0]
             book_id = self.BookTW.item(selected_row, 0).text()  # Assuming the first column is the book ID
-            self.cursor.execute("SELECT Availability FROM Books WHERE Book_ID = ?", (book_id,))
+            print(book_id)
+            self.cursor.execute("SELECT Availability FROM Books WHERE Book_ID = ?", (int(book_id),))
             book_status = self.cursor.fetchone()
             if book_status and book_status[0] == "Available":
                 self.cursor.execute("UPDATE Books SET Availability = 'Issued' WHERE Book_ID = ?", (book_id,))
@@ -878,7 +892,7 @@ class SearchScreen(QtWidgets.QMainWindow):
                 INSERT INTO Issued_Books (Member_ID, Book_ID, Issue_Date, Due_Date) 
                 VALUES (?, ?, GETDATE(), DATEADD(WEEK, 2, GETDATE()))
             """, (user_id, book_id))
-                self.connection.commit()
+                self.db.get_connection().commit()
                 show_message(self, "Success", "Book issued successfully!")
                 self.BookTW.item(selected_row, 4).setText("Issued")  # Update status in UI
             else:
@@ -886,8 +900,70 @@ class SearchScreen(QtWidgets.QMainWindow):
         else:
             show_message(self, "Warning", "Please select a book to issue.")
     def loggingOut(self):
-        self.mainScreen = UI()
-        self.mainScreen.show()
+        self.close()
+        self.parent().close()
+
+
+    def rateABook(self):
+        print("in")
+        selected_row = self.BookTW.currentRow()
+        if selected_row != -1:  # Check if a row is selected
+            book_id = self.BookTW.item(selected_row, 0).text() 
+            self.rateScreen = RateScreen(self.db, book_id)
+            self.rateScreen.show()
+        else:
+            show_message(self, "Warning", "Please select a book to rate.")
+
+class RateScreen(QMainWindow):
+    def __init__(self, db_connection: DatabaseConnection, book_id):
+        super().__init__()
+        uic.loadUi("Rate_a_book.ui", self)  # Load the UI for the "Rate a Book" screen
+        
+        # Initialize database connection and book ID
+        self.db = db_connection
+        self.book_id = book_id
+        
+        # Set up QButtonGroup for radio buttons (rating)
+        self.rating_group = QButtonGroup(self)
+        self.rating_group.addButton(self.radioButton, 1)  # ID 1 for 1-star
+        self.rating_group.addButton(self.radioButton_2, 2)  # ID 2 for 2-stars
+        self.rating_group.addButton(self.radioButton_3, 3)  # ID 3 for 3-stars
+        self.rating_group.addButton(self.radioButton_4, 4)  # ID 4 for 4-stars
+        self.rating_group.addButton(self.radioButton_5, 5)  # ID 5 for 5-stars
+
+        self.selected_rating = None
+
+        # Connect the rating group to the updateRating method
+        self.rating_group.idToggled.connect(self.updateRating)
+
+        # Connect buttons to respective functions
+        self.Yes_Btn.clicked.connect(lambda: self.setRating(self.selected_rating, self.book_id))
+        self.No_Btn.clicked.connect(self.cancelRating)
+
+    def updateRating(self, button_id, checked):
+        """Update the selected rating when a radio button is toggled"""
+        if checked:  # Only update if the button is selected (checked)
+            self.selected_rating = button_id
+
+    def setRating(self, rating, book_id):
+        """Update the rating in the database for the selected book"""
+        if self.selected_rating is None:
+            show_message(self, "Error", "Please select a rating!")
+            return
+        # Perform the database update
+        cursor = self.db.get_connection().cursor()
+        cursor.execute("UPDATE Books SET Rating = ? WHERE Book_ID = ?", (int(rating), int(book_id)))
+        self.db.get_connection().commit()
+
+        # Show success message
+        show_message(self, "Success", "Rating added, thank you!")
+
+    def cancelRating(self):
+        """Close the window if the user cancels"""
+        self.close()
+
+
+
 
 class BookARoom(QMainWindow):
     def __init__(self, db_connection: DatabaseConnection):
