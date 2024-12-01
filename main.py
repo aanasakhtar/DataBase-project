@@ -218,7 +218,7 @@ class SignIn(QtWidgets.QMainWindow):
         self.openMemberScreen()
 
     def openMemberScreen(self): 
-        self.memberScreen = MemberScreen(self.usernameF.text(), self.db)  # Pass db to Member screen
+        self.memberScreen = MemberScreen(self.usernameF.text())
         self.memberScreen.show()
 
 
