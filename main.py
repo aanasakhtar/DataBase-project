@@ -604,8 +604,8 @@ class Book_Inventory(QtWidgets.QMainWindow):
                 b.ISBN,
                 b.Title,
                 m.Member_Name AS Issued_To,
-                ib.Issue_Date,
                 ib.Due_Date,
+                ib.Issue_Date,
                 ib.Return_Date
             FROM 
                 Issued_Books ib
@@ -984,8 +984,10 @@ class BookARoom(QMainWindow):
         self.populateRoomComboBox()  # Populate room numbers when UI loads
         self.comboBox_2.currentTextChanged.connect(self.updateTimeSlots)
         self.populateRoomNumbers()  # Call this during the initialization
+        self.spinBox.setMinimum(1)
+        self.spinBox.setMaximum(10)
         self.pushButton.clicked.connect(self.bookRoom)  # Connect the confirm button to the booking function
-
+        
         #self.comboBox.currentIndexChanged.connect(self.updateTimeSlots)  # Update available time slots when room is selected
 
     def populateRoomComboBox(self):
@@ -1069,6 +1071,11 @@ class BookARoom(QMainWindow):
         for room in rooms:
             self.comboBox_2.addItem(str(room[0]))
 
+    def limitSpinBoxValue(self):
+        """Ensure spin box value does not exceed 10."""
+        if self.spinBox.value() > 10:
+            self.spinBox.setValue(10)
+        
 
     def bookRoom(self):
         """Book the selected room and update the database."""
