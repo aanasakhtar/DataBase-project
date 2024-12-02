@@ -5,7 +5,7 @@ import sys
 import pyodbc
 
 def show_message(parent, title, message):
-    """Utility function to show a message box."""
+    # Utility function to show a message box
     msg_box = QtWidgets.QMessageBox(parent)
     msg_box.setWindowTitle(title)
     msg_box.setText(message)
@@ -25,20 +25,19 @@ class DatabaseConnection:
         self.connect()
 
     def connect(self):
-        """Connect to the database."""
+        # Connect to the database
         connection_string = f'DRIVER={{ODBC Driver 17 for SQL Server}};SERVER={self.server};DATABASE={self.database};Trusted_Connection=yes'
         self.connection = pyodbc.connect(connection_string)
         self.cursor = self.connection.cursor()
 
     def get_cursor(self):
-        """Return the cursor for executing queries."""
+        # Return the cursor for executing queries
         return self.cursor
 
     def get_connection(self):
-        """Return the database connection."""
+        # Return the database connection
         return self.connection
 
-# Initialize the database connection
 db = DatabaseConnection()
 
 
@@ -203,7 +202,7 @@ class SignIn(QtWidgets.QMainWindow):
 
     def signInAsMember(self, username, password):
         sql_query = """
-            SELECT Member_Password FROM Member_Info WHERE Member_Name = ?
+            SELECT Member_Password, Member_Status FROM Member_Info WHERE Member_Name = ?
         """
         cursor = self.db.get_cursor()  # Correctly retrieve the cursor here
         try:
@@ -213,7 +212,9 @@ class SignIn(QtWidgets.QMainWindow):
             if result is None:
                 show_message(self, "Error", "No username found")
                 return
-            
+            if result[1] == "Inactive":
+                show_message(self, "Warning", "User is blocked")
+                return
             if password != result[0]:
                 show_message(self, "Error", "Incorrect Password")
                 return
@@ -379,7 +380,7 @@ class Room_inventory(QtWidgets.QMainWindow):
             room_no = self.room_table.item(selected_row, 0).text()  # Room number (first column)
             availability = self.room_table.item(selected_row, 1).text()  # Availability status (second column)
 
-            # Step 1: Fetch the corresponding time slot for the selected room from the Rooms table
+            # Fetch the corresponding time slot for the selected room from the Rooms table
             fetch_time_slot_query = """
             SELECT Time_Slot
             FROM Rooms
@@ -395,32 +396,28 @@ class Room_inventory(QtWidgets.QMainWindow):
             
             time_slot = time_slot[0]  # Extract the time slot from the result
 
-            # Debugging: Print the room number and time slot
-            print(f"Room No: {room_no}, Time Slot: {time_slot}, Availability: {availability}")
 
             if availability == "Booked":
                 try:
-                    # Step 2: Remove the booking for the specific time slot from the Bookings table
+                    # Remove the booking for the specific time slot from the Bookings table
                     delete_query = """
                     DELETE FROM Bookings
                     WHERE Room_No = ? AND Booking_Time_Slot = ?
                     """
-                    print(f"Executing query: {delete_query} with Room_No = {room_no} and Time_Slot = {time_slot}")  # Debugging
                     cursor.execute(delete_query, (room_no, time_slot))
                     self.db_connection.get_connection().commit()  # Commit the delete operation
 
-                    # Step 3: Update the Room_Availability to 'Available' for that specific room and time slot
+                    # Update the Room_Availability to 'Available' for that specific room and time slot
                     # Here we ensure that we update the correct room and time slot in the Rooms table
                     update_query = """
                     UPDATE Rooms
                     SET Room_Availability = 'Available'
                     WHERE Room_No = ? AND Time_Slot = ?
                     """
-                    print(f"Executing query: {update_query} with Room_No = {room_no} and Time_Slot = {time_slot}")  # Debugging
                     cursor.execute(update_query, (room_no, time_slot))
                     self.db_connection.get_connection().commit()  # Commit the update operation
 
-                    # Step 4: Update the table in the UI (change the availability of the selected row)
+                    # Update the table in the UI (change the availability of the selected row)
                     self.room_table.item(selected_row, 1).setText("Available")  # Update the availability for the specific time slot
                     self.room_table.setItem(selected_row, 2, QtWidgets.QTableWidgetItem(""))  # Clear the 'BookedBy' field
 
@@ -517,7 +514,6 @@ class Book_Inventory(QtWidgets.QMainWindow):
         super().__init__(parent)
         uic.loadUi('book_inventory.ui', self)
 
-        # Store the shared database connection and librarian ID
         self.db_connection = db_connection
         self.librarian_id = librarian_id  # Store the current logged-in librarian ID
 
@@ -525,28 +521,27 @@ class Book_Inventory(QtWidgets.QMainWindow):
         self.issued_books_window = None
         self.add_book_window = None
 
-        # Access widgets from the UI file
         self.books_table = self.findChild(QtWidgets.QTableWidget, 'Books_Table')
         self.add_book_button = self.findChild(QtWidgets.QPushButton, 'AddBook_Button')
         self.issued_books_button = self.findChild(QtWidgets.QPushButton, 'IssuedBooks_Button')
 
-        # Connect buttons to their respective methods
         self.issued_books_button.clicked.connect(self.show_issued_books)
         self.add_book_button.clicked.connect(self.open_add_book_screen)
 
-        # Populate the books table when the window is initialized
         self.populate_books_table()
 
-    def populate_books_table(self):
-        cursor = self.db_connection.get_cursor()  # Get the cursor from DatabaseConnection
+        self.UpdatePB.clicked.connect(self.updateTheBookInventory)
 
-        # Query to fetch book details
+    def populate_books_table(self):
+        cursor = self.db_connection.get_cursor()
+
+        # Query to get book details
         query = """
         SELECT ISBN, Title, Genre, Author, Rating, Availability, AddedBy_Librarian_ID
         FROM Books
         """
         cursor.execute(query)
-        books = cursor.fetchall()  # Get all rows from the query
+        books = cursor.fetchall()
 
         # Clear the table before populating it with new data
         self.books_table.clearContents()
@@ -587,11 +582,9 @@ class Book_Inventory(QtWidgets.QMainWindow):
 
     def show_issued_books(self):
         if self.issued_books_window is None:
-            # Create the issued books window
             self.issued_books_window = QtWidgets.QMainWindow(self)
             uic.loadUi('Issued_book.ui', self.issued_books_window)
 
-            # Reference the QTableWidget in the issued books window
             table_widget = self.issued_books_window.findChild(QtWidgets.QTableWidget, 'tableWidget')
 
             # Query to fetch issued books data
@@ -611,12 +604,11 @@ class Book_Inventory(QtWidgets.QMainWindow):
                 Member_Info m ON ib.Member_ID = m.Member_ID;
             """
 
-            # Execute the query and fetch data
             cursor = self.db_connection.get_cursor()
             cursor.execute(query)
             records = cursor.fetchall()
 
-            # Populate the table widget
+            # Populate UI
             table_widget.setRowCount(0)  # Clear existing rows
             table_widget.setRowCount(len(records))
             for row_idx, record in enumerate(records):
@@ -628,48 +620,94 @@ class Book_Inventory(QtWidgets.QMainWindow):
             table_widget.setEditTriggers(QtWidgets.QAbstractItemView.EditTrigger.NoEditTriggers)
             table_widget.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.NoSelection)
 
-        # Show the issued books window
         self.issued_books_window.show()
 
 
     def open_add_book_screen(self):
-        """Open the Add Book screen with the current librarian ID."""
+        # Open the Add Book screen with the current librarian ID
         add_book_window = AddBookScreen(self.db_connection, self.librarian_id, parent=self)
         add_book_window.show()
 
+    def updateTheBookInventory(self):
+        # Get the currently selected row
+        selected_row = self.Books_Table.currentRow()
+        
+        if selected_row == -1:  # No row selected
+            show_message(self, "Error", "No book selected.")
+            return
+
+        # Assuming the Book_ID is in the first column
+        book_isbn_item = self.Books_Table.item(selected_row, 0)
+        if book_isbn_item is None:
+            show_message(self, "Error", "Book ID not found in the selected row.")
+            return
+
+        book_isbn = book_isbn_item.text()
+
+        cursor = self.db_connection.get_cursor()
+        find_query = """
+            SELECT Availability FROM Books WHERE ISBN = ? 
+        """
+        cursor.execute(find_query, (int(book_isbn),))
+        result = cursor.fetchone()
+        print(int(book_isbn), result)
+        if result is None:
+            show_message(self, "Error", "Book not found in the database.")
+            return
+
+        availability = result[0]
+        if availability == "Issued":
+            update_query = """
+                UPDATE Books
+                SET Availability = 'Available'
+                WHERE ISBn = ?
+            """
+        else:
+            update_query = """
+                UPDATE Books
+                SET Availability = 'Issued'
+                WHERE ISBN = ?
+            """
+
+        # Execute the update query
+        cursor.execute(update_query, (book_isbn,))
+        self.db_connection.get_connection().commit()
+
+        # Refresh the table
+        self.populate_books_table()
+        show_message(self, "Success", "Book inventory updated successfully.")
+
+
+        
 
 class AddBookScreen(QtWidgets.QMainWindow):
     def __init__(self, db_connection: DatabaseConnection, librarian_id, parent=None):
         super().__init__(parent)
         uic.loadUi('Add_book.ui', self)
 
-        # Accessing widgets from the UI
         self.isbn_edit = self.findChild(QtWidgets.QLineEdit, 'Isbn_Edit')
         self.title_edit = self.findChild(QtWidgets.QLineEdit, 'Title_Edit')
         self.genre_combobox = self.findChild(QtWidgets.QComboBox, 'Genre_Combobox')
         self.author_edit = self.findChild(QtWidgets.QLineEdit, 'Author_Edit')
         self.confirm_button = self.findChild(QtWidgets.QPushButton, 'Confirm_Button')
 
-        # Store the librarian's ID and the shared db connection for future use
         self.librarian_id = librarian_id
-        self.db_connection = db_connection  # Using the shared db connection
-        self.cursor = self.db_connection.get_cursor()  # Get the cursor from the shared connection
+        self.db_connection = db_connection
+        self.cursor = self.db_connection.get_cursor()
 
         # Populate the genre combobox
         self.populate_genre_combobox()
 
-        # Connect the confirm button to the add_book_to_database method
         self.confirm_button.clicked.connect(self.add_book_to_database)
 
     def populate_genre_combobox(self):
-        """Populates the genre combobox with distinct genres from the database."""
+        # Populates the genre combobox with distinct genres from the database
         query = "SELECT DISTINCT genre FROM Books"
         self.cursor.execute(query)
         genres = [row[0] for row in self.cursor.fetchall()]
         self.genre_combobox.addItems(genres)
     
     def add_book_to_database(self):
-        """Add the book to the database using the values entered in the UI."""
         isbn = self.isbn_edit.text()
         title = self.title_edit.text()
         genre = self.genre_combobox.currentText()
@@ -682,20 +720,18 @@ class AddBookScreen(QtWidgets.QMainWindow):
         
         availability = "Available"
         
-        # SQL query to insert the new book
+        # Query to insert new book
         query = """
         INSERT INTO Books (ISBN, Title, Genre, Author, Availability, AddedBy_Librarian_ID)
         VALUES (?, ?, ?, ?, ?, ?)
         """
-        # Execute the query with the provided values
         self.cursor.execute(query, (isbn, title, genre, author, availability, self.librarian_id))
         self.cursor.connection.commit()  # Commit the transaction to the database
 
-        # Show a success message
         QtWidgets.QMessageBox.information(self, "Success", "Book added successfully.")
-        self.close()  # Close the add book screen after success
+        self.close()
 
-        # # Now, call the method to refresh the book inventory table in Book_Inventory
+        # # Refresh book inventory table in Book_Inventory
         if self.parent():
             self.parent().populate_books_table()
 
@@ -879,14 +915,13 @@ class SearchScreen(QtWidgets.QMainWindow):
                 show_message(self, "Warning", "Please select a book to view details.")
 
     def issue(self, username):
-        """Issue the selected book to the current user."""
+        # Issue the selected book to the current user
         selected_row = self.BookTW.currentRow()
         if selected_row != -1:  # Check if a row is selected
             self.cursor.execute("select Member_ID from Member_Info where Member_Name = ?", (username))
             user_id = self.cursor.fetchone()
             user_id = user_id[0]
             book_id = self.BookTW.item(selected_row, 0).text()  # Assuming the first column is the book ID
-            print(book_id)
             self.cursor.execute("SELECT Availability FROM Books WHERE Book_ID = ?", (int(book_id),))
             book_status = self.cursor.fetchone()
             if book_status and book_status[0] == "Available":
@@ -946,12 +981,10 @@ class RateScreen(QMainWindow):
         self.No_Btn.clicked.connect(self.cancelRating)
 
     def updateRating(self, button_id, checked):
-        """Update the selected rating when a radio button is toggled"""
         if checked:  # Only update if the button is selected (checked)
             self.selected_rating = button_id
 
     def setRating(self, rating, book_id):
-        """Update the rating in the database for the selected book"""
         if self.selected_rating is None:
             show_message(self, "Error", "Please select a rating!")
             return
@@ -969,7 +1002,6 @@ class RateScreen(QMainWindow):
         self.close()
 
     def cancelRating(self):
-        """Close the window if the user cancels"""
         self.close()
 
 
@@ -978,61 +1010,43 @@ class RateScreen(QMainWindow):
 class BookARoom(QMainWindow):
     def __init__(self, db_connection: DatabaseConnection):
         super().__init__()
-        uic.loadUi("Book_a_room.ui", self)  # Load the UI for the "Book a Room" screen
+        uic.loadUi("Book_a_room.ui", self) 
 
-        self.db = db_connection  # Make sure your connection string is correct
+        self.db = db_connection 
         self.cursor = db_connection.get_cursor()
-        self.populateRoomComboBox()  # Populate room numbers when UI loads
         self.comboBox_2.currentTextChanged.connect(self.updateTimeSlots)
-        self.populateRoomNumbers()  # Call this during the initialization
+        self.populateRoomNumbers()  # populates room number combobox
         self.spinBox.setMinimum(1)
         self.spinBox.setMaximum(10)
-        self.pushButton.clicked.connect(self.bookRoom)  # Connect the confirm button to the booking function
+        self.pushButton.clicked.connect(self.bookRoom)  
 
-        #self.comboBox.currentIndexChanged.connect(self.updateTimeSlots)  # Update available time slots when room is selected
-
-    def populateRoomComboBox(self):
-        """Populate room numbers in comboBox."""
-        self.comboBox_2.addItem("Select Room")  # Default option
-        self.cursor.execute("SELECT Room_No FROM Rooms WHERE Room_Availability = 'Available'")
-        rooms = self.cursor.fetchall()
-        for room in rooms:
-            self.comboBox_2.addItem(str(room[0]))
-
+       
     def updateTimeSlots(self):
-        """Update available time slots based on the selected room."""
-        self.comboBox.clear()  # Clear the time slots comboBox
-        selected_room = self.comboBox_2.currentText()  # Get the selected room number
+        self.comboBox.clear() 
+        selected_room = self.comboBox_2.currentText() 
 
-    # Check if a valid room number is selected
+    # Checks for a valid room number 
         if selected_room == "Select Room" or not selected_room:
             self.comboBox.addItem("Select Time Slot")
             return
 
-    # Query the database for available time slots for the selected room
+    # gets the time slots for selected room
         self.cursor.execute("""
             SELECT Time_Slot 
             FROM Rooms 
             WHERE Room_No = ? AND Room_Availability = 'Available'
         """, (selected_room,))
     
-        time_slots = self.cursor.fetchall()  # Fetch all matching records
+        time_slots = self.cursor.fetchall()  #stores in time_slots variable
 
-        if not time_slots:
-            # If no time slots are available, show a message in the comboBox
-            self.comboBox.addItem("No available slots")
-            return
-
-        # Add "Select Time Slot" as the default option
-        self.comboBox.addItem("Select Time Slot")
+        self.comboBox.addItem("Select Time Slot") # default value 
     
         # Populate the comboBox with available time slots
         for slot in time_slots:
-            self.comboBox.addItem(slot[0])  # slot[0] because fetchall() returns a list of tuples
+            self.comboBox.addItem(slot[0])  
 
 
     def populateAvailableSlots(self):
-        """Refresh available time slots for the selected room."""
         selected_room = self.comboBox_2.currentText()  # Get selected room from the dropdown
 
         if selected_room == "Select Room" or not selected_room:
@@ -1060,7 +1074,6 @@ class BookARoom(QMainWindow):
             self.spinbox.setvalue(10)
 
     def populateRoomNumbers(self):
-        """Populate the room numbers in the Room Selection comboBox."""
         self.comboBox_2.clear()  # Clear the dropdown to avoid duplicates
         self.comboBox_2.addItem("Select Room")  # Add a default placeholder
 
@@ -1077,7 +1090,6 @@ class BookARoom(QMainWindow):
 
 
     def bookRoom(self):
-        """Book the selected room and update the database."""
         selected_room = self.comboBox_2.currentText()
         selected_slot = self.comboBox.currentText()
         username = self.lineEdit_2.text()
@@ -1091,7 +1103,6 @@ class BookARoom(QMainWindow):
             show_message(self, "Error", "Please enter a username.")
             return
 
-        # Check if the room and time slot exist in the Rooms table
         self.cursor.execute("""
             SELECT Capacity FROM Rooms WHERE Room_No = ? AND Time_Slot = ? AND Room_Availability = 'Available'
         """, (selected_room, selected_slot))
@@ -1104,13 +1115,13 @@ class BookARoom(QMainWindow):
 
         room_capacity = room_data[0]
 
-        # Check if the number of people is less than or equal to the room's capacity
         if count_of_people > room_capacity:
             show_message(self, "Error", f"The number of people ({count_of_people}) exceeds the room capacity ({room_capacity}). Please select a valid number of people.")
             return
 
-        # Insert booking into the database
-        # First, check if the member has a valid ID in the Members table
+        # Inserting booking into the database
+        
+        #Query to check valid member ID
         self.cursor.execute("""
             SELECT Member_ID 
             FROM Member_info 
@@ -1122,8 +1133,8 @@ class BookARoom(QMainWindow):
             show_message(self, "Error", "Invalid username. Please enter a valid username.")
             return
 
-        # Proceed with booking
-        member_id = member[0]  # Fetch the Member_ID for the username
+        
+        member_id = member[0]  
 
         self.cursor.execute("""
             INSERT INTO Bookings (Member_ID, Room_No, Booking_Date, Booking_Time_Slot)
