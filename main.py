@@ -1,11 +1,10 @@
-from PyQt6 import QtWidgets, uic, QtCore
-from PyQt6.QtCore import Qt, QDate
-from PyQt6.QtWidgets import QMessageBox,QButtonGroup, QApplication, QMainWindow, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget, QHeaderView, QAbstractItemView
+from PyQt6 import QtWidgets, uic
+from PyQt6.QtWidgets import QButtonGroup, QMainWindow, QTableWidgetItem, QAbstractItemView
 import sys
 import pyodbc
 
 def show_message(parent, title, message):
-    """Utility function to show a message box."""
+    # Utility function to show a message box
     msg_box = QtWidgets.QMessageBox(parent)
     msg_box.setWindowTitle(title)
     msg_box.setText(message)
@@ -25,17 +24,17 @@ class DatabaseConnection:
         self.connect()
 
     def connect(self):
-        """Connect to the database."""
+        # Connect to the database
         connection_string = f'DRIVER={{ODBC Driver 17 for SQL Server}};SERVER={self.server};DATABASE={self.database};Trusted_Connection=yes'
         self.connection = pyodbc.connect(connection_string)
         self.cursor = self.connection.cursor()
 
     def get_cursor(self):
-        """Return the cursor for executing queries."""
+        # Return the cursor for executing queries
         return self.cursor
 
     def get_connection(self):
-        """Return the database connection."""
+        # Return the database connection, needed to commit to database
         return self.connection
 
 # Initialize the database connection
@@ -49,7 +48,6 @@ class UI(QtWidgets.QMainWindow):
         super().__init__()
         uic.loadUi('Main_screen.ui', self)
 
-        # Initialize the shared database connection
         self.db = DatabaseConnection()  # Create a shared database connection
 
         # Connect buttons to their corresponding functions
@@ -73,7 +71,6 @@ class UI(QtWidgets.QMainWindow):
 class CreateAccount(QtWidgets.QMainWindow):  
     def __init__(self, db_connection: DatabaseConnection):
         super().__init__() 
-        # Load the .ui file
         uic.loadUi('Create_account.ui', self)
         self.resize(600, 400)
 
@@ -122,15 +119,13 @@ class CreateAccount(QtWidgets.QMainWindow):
             return
         
         try:
-            # Insert data into the database
             self.add_to_database(username, password)
             show_message(self, "Success", "Account created successfully!")
         except Exception as e:
             show_message(self, "Error", f"Failed to create account: {e}")
 
     def add_to_database(self, username, password):
-        # Use the cursor directly
-        cursor = self.db.get_cursor()  # Access the cursor from the DatabaseConnection object
+        cursor = self.db.get_cursor()
 
         cursor.execute("select count(*) from Member_Info")
         member_id = cursor.fetchone()
@@ -154,10 +149,8 @@ class CreateAccount(QtWidgets.QMainWindow):
 class SignIn(QtWidgets.QMainWindow):
     def __init__(self, db):
         super().__init__()
-        # Load the .ui file
         uic.loadUi('Sign_in.ui', self)
 
-        # Store the database connection object
         self.db = db
         self.librarian_id = None  # Initialize librarian_id
 
@@ -165,7 +158,7 @@ class SignIn(QtWidgets.QMainWindow):
         self.passwordF = self.findChild(QtWidgets.QLineEdit, "Enter_Password_Edit")
         self.passwordF.setEchoMode(QtWidgets.QLineEdit.EchoMode.Password)
         
-        self.signinBtn = self.findChild(QtWidgets.QPushButton, "signinBtn")  # Ensure button is connected
+        self.signinBtn = self.findChild(QtWidgets.QPushButton, "signinBtn")
         self.signinBtn.clicked.connect(self.signin)
 
     def signin(self):
@@ -184,7 +177,7 @@ class SignIn(QtWidgets.QMainWindow):
         sql_query = """
             select Librarian_ID, Librarian_Password from Library_Staff where Librarian_Name = ?
         """
-        cursor = self.db.get_cursor()  # Use the cursor from DatabaseConnection
+        cursor = self.db.get_cursor()
         cursor.execute(sql_query, (username,))
         result = cursor.fetchone()
 
@@ -208,7 +201,7 @@ class SignIn(QtWidgets.QMainWindow):
         sql_query = """
             SELECT Member_Password FROM Member_Info WHERE Member_Name = ?
         """
-        cursor = self.db.get_cursor()  # Correctly retrieve the cursor here
+        cursor = self.db.get_cursor()
         try:
             cursor.execute(sql_query, (username,))
             result = cursor.fetchone()
@@ -229,13 +222,13 @@ class SignIn(QtWidgets.QMainWindow):
     def openMemberScreen(self): 
         self.memberScreen = MemberScreen(self.usernameF.text(), self.db)  # Pass db to Member screen
         self.memberScreen.show()
+
     def logout(self):
         self.close()
 
 
 
-
-############################################ MODULE 2 ################################################### 
+############################################### MODULE 2 ########################################################## 
 
 class Admin_or_Librarian(QtWidgets.QMainWindow):  
     def __init__(self, db_connection: DatabaseConnection, librarian_id):
@@ -271,12 +264,11 @@ class Admin_or_Librarian(QtWidgets.QMainWindow):
         for screen in screens:
             screen.close()
         self.close()
-        
 
 
 class Inventory(QtWidgets.QMainWindow):
     def __init__(self, db_connection: DatabaseConnection, librarian_id, parent=None):
-        super().__init__(parent)  # Pass the parent to the parent class constructor
+        super().__init__(parent)  # child screen to admin_or)librarian, closes when parent closed
         uic.loadUi('Inventory.ui', self)
 
         self.db_connection = db_connection
@@ -290,7 +282,6 @@ class Inventory(QtWidgets.QMainWindow):
 
     def open_room_inventory(self):
         if self.room_inventory_window is None:
-            # Pass the full DatabaseConnection object to the Room_inventory window
             self.room_inventory_window = Room_inventory(self.db_connection)
         self.room_inventory_window.show()
 
@@ -324,10 +315,9 @@ class Room_inventory(QtWidgets.QMainWindow):
         self.room_table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
 
     def populate_room_table(self):
-        # Get the cursor from DatabaseConnection
         cursor = self.db_connection.get_cursor()
         
-        # Query to fetch room details along with the username of the person who booked the room
+        # Query to get room details along with username of person who booked the room
         query = """
         SELECT r.Room_No, r.Room_Availability, r.Capacity, m.Member_Name
         FROM Rooms r
@@ -335,61 +325,57 @@ class Room_inventory(QtWidgets.QMainWindow):
         LEFT JOIN Member_Info m ON b.Member_ID = m.Member_ID
         """
         
-        # Execute the query and fetch all results
         cursor.execute(query)
-        rooms = cursor.fetchall()  # Get all rows from the query
+        rooms = cursor.fetchall()
 
         # Clear the table before populating it with new data
         self.room_table.clearContents()
         self.room_table.setRowCount(0)
 
-        # Populate the table with room data
         for row_idx, room in enumerate(rooms):
             room_no, availability, capacity, booked_by = room
 
-            # Create table items for each column
             room_no_item = QtWidgets.QTableWidgetItem(str(room_no))
             availability_item = QtWidgets.QTableWidgetItem(availability)
             booked_by_item = QtWidgets.QTableWidgetItem(booked_by if booked_by else '')
             capacity_item = QtWidgets.QTableWidgetItem(str(capacity))
 
-            # Add items to the respective columns
             self.room_table.insertRow(row_idx)  # Add row for each entry
             self.room_table.setItem(row_idx, 0, room_no_item)
             self.room_table.setItem(row_idx, 1, availability_item)
             self.room_table.setItem(row_idx, 2, booked_by_item)
             self.room_table.setItem(row_idx, 3, capacity_item)
 
-        # Table set as read-only while allowing row selection
+        # Table set as read-only while allowing row selection (to allow update and time slot)
         self.room_table.setEditTriggers(QtWidgets.QAbstractItemView.EditTrigger.NoEditTriggers)
         self.room_table.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectionBehavior.SelectRows)
         self.room_table.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.SingleSelection)
 
 
     def update_room(self):
-        cursor = self.db_connection.get_cursor()  # Get the cursor from DatabaseConnection
+        cursor = self.db_connection.get_cursor()
         selected_row = self.room_table.currentRow()
 
         if selected_row != -1:
             # Get the room number and availability from the selected row in the table
             room_no = self.room_table.item(selected_row, 0).text()  # Room number (first column)
-            availability = self.room_table.item(selected_row, 1).text()  # Availability status (second column)
+            availability = self.room_table.item(selected_row, 1).text()  # Availability (second column)
 
-            # Fetch the corresponding time slot for the selected room from the Rooms table
+            # Get corresponding time slot for selected room from Rooms table
             fetch_time_slot_query = """
             SELECT Time_Slot
             FROM Rooms
             WHERE Room_No = ? AND Room_Availability = 'Booked'
             """
             cursor.execute(fetch_time_slot_query, (room_no,))
-            time_slot = cursor.fetchone()
+            time_slot = cursor.fetchone() # one value returned as a tuple
 
-            # If no time slot is found, show an error
+            # If no time slot found
             if time_slot is None:
                 QtWidgets.QMessageBox.warning(self, "Invalid Action", "Room is not booked or time slot is missing.")
                 return
             
-            time_slot = time_slot[0]  # Extract the time slot from the result
+            time_slot = time_slot[0]  # Extract time slot from the tuple
 
             if availability == "Booked":
                 try:
@@ -399,7 +385,7 @@ class Room_inventory(QtWidgets.QMainWindow):
                     WHERE Room_No = ? AND Booking_Time_Slot = ?
                     """
                     cursor.execute(delete_query, (room_no, time_slot))
-                    self.db_connection.get_connection().commit()  # Commit the delete operation
+                    self.db_connection.get_connection().commit()
 
                     # Update the Room_Availability to 'Available' for that specific room and time slot
                     update_query = """
@@ -408,7 +394,7 @@ class Room_inventory(QtWidgets.QMainWindow):
                     WHERE Room_No = ? AND Time_Slot = ?
                     """
                     cursor.execute(update_query, (room_no, time_slot))
-                    self.db_connection.get_connection().commit()  # Commit the update operation
+                    self.db_connection.get_connection().commit()
 
                     # Update the table in the UI (change the availability of the selected row)
                     self.room_table.item(selected_row, 1).setText("Available")  # Update the availability for the specific time slot
@@ -419,19 +405,19 @@ class Room_inventory(QtWidgets.QMainWindow):
                 except Exception as e:
                     self.db_connection.get_connection().rollback()  # Rollback in case of error
                     QtWidgets.QMessageBox.warning(self, "Error", f"Failed to update room: {str(e)}")
+
             else:
                 QtWidgets.QMessageBox.warning(self, "Invalid Action", "Room is not booked.")
 
 
     def open_time_slots(self):
-        # Get the selected row index
         selected_row = self.room_table.currentRow()
 
-        # If a row is selected
         if selected_row != -1:  
-            self.selected_room_no = self.room_table.item(selected_row, 0).text()  # Get the room number
+            self.selected_room_no = self.room_table.item(selected_row, 0).text()  # Get room number
 
-            # Temporarily disable selection mode when opening the time slots window
+            # Temporarily disable selection mode when opening the time slots window, so that it doesnt need to 
+            # change the slots unless the screen is closed and reopened selecting a different room
             self.room_table.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
 
             if self.time_slots_window is None:
@@ -454,44 +440,39 @@ class Room_inventory(QtWidgets.QMainWindow):
         # Get the room number for the selected row
         room_no = self.room_table.item(selected_row, 0).text()
 
-        # Get cursor from the database connection
         cursor = self.db_connection.get_cursor()
 
-        # Query to fetch the TimeSlots for the selected RoomNo
+        # Query for getting TimeSlots for selected RoomNo
         cursor.execute("""
             SELECT Time_Slot, Room_Availability
             FROM Rooms
             WHERE Room_No = ?
         """, (room_no,))
 
-        # Fetch all time slots for the selected room
         rows = cursor.fetchall()
 
         # Clear the time slots table before populating it with new data
         time_slots_table.clearContents()
         time_slots_table.setRowCount(0)
 
-        # Set the row count in the time slots table widget
         time_slots_table.setRowCount(len(rows))
 
-        # Loop through the fetched rows and populate the time slots table widget
         for row_idx, row in enumerate(rows):
-            time_slots = row[0]  # Time slots string (e.g., "09:00:00 to 10:00:00")
-            booked = row[1]  # Room availability status (e.g., 'Booked' or 'Available')
+            time_slots = row[0]  # Time slot, for ex: 09:00:00 to 10:00:00
+            booked = row[1]  # Room availability status, for ex: Booked or Available
 
             # Split the TimeSlots string to extract StartTime and EndTime
             start_time, end_time = time_slots.split(' to ')
 
-            # Slot ID will start from 1 and auto-increment for each time slot
+            # Slot ID starting from 1, increments for each time slot
             slot_id = row_idx + 1
 
-            # Populate the table with the time slot details
-            time_slots_table.setItem(row_idx, 0, QtWidgets.QTableWidgetItem(str(slot_id)))  # Slot ID
-            time_slots_table.setItem(row_idx, 1, QtWidgets.QTableWidgetItem(start_time))  # Start Time
-            time_slots_table.setItem(row_idx, 2, QtWidgets.QTableWidgetItem(end_time))    # End Time
-            time_slots_table.setItem(row_idx, 3, QtWidgets.QTableWidgetItem(str(booked)))  # Room Availability (Booked/Available)
+            time_slots_table.setItem(row_idx, 0, QtWidgets.QTableWidgetItem(str(slot_id)))
+            time_slots_table.setItem(row_idx, 1, QtWidgets.QTableWidgetItem(start_time))
+            time_slots_table.setItem(row_idx, 2, QtWidgets.QTableWidgetItem(end_time))
+            time_slots_table.setItem(row_idx, 3, QtWidgets.QTableWidgetItem(str(booked)))
 
-        # Make the time slots table uneditable and unselectable
+        # Make time slots table uneditable and unselectable
         time_slots_table.setEditTriggers(QtWidgets.QAbstractItemView.EditTrigger.NoEditTriggers)
         time_slots_table.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.NoSelection)
 
@@ -689,24 +670,21 @@ class Members(QtWidgets.QMainWindow):
         super().__init__(parent)
         uic.loadUi('Members.ui', self)
 
-        # Store the database connection object
         self.db_connection = db_connection
-        self.cursor = self.db_connection.get_cursor()  # Use the cursor from the DatabaseConnection object
+        self.cursor = self.db_connection.get_cursor()
 
-        # Connect the 'BlockButton' to the block_member function
         self.BlockButton.clicked.connect(self.block_member)
 
-        # Populate the Members table
         self.populate_members_table()
 
     def populate_members_table(self):
-        """Fetch data from the database and populate the Members_Table."""
         query = """
         SELECT m.Member_ID, m.Member_Name, m.Member_Password, m.Member_Status, b.Title
         FROM Member_Info m
         LEFT JOIN Issued_Books ib ON m.Member_ID = ib.Member_ID
         LEFT JOIN Books b ON ib.Book_ID = b.Book_ID
-        """
+        """ # Issued_Books used to link Member_Info to Books, if member has no issued books then issued books null, 
+            # if book not issued, then book title null
         self.cursor.execute(query)
         rows = self.cursor.fetchall()
 
@@ -717,33 +695,33 @@ class Members(QtWidgets.QMainWindow):
         for row_idx, row in enumerate(rows):
             member_id = row[0]
             member_name = row[1]
-            member_password = row[2]
             status = row[3]
             book_issued = row[4] if row[4] else 'None'  # If no book issued, display 'None'
 
-            self.Members_Table.setItem(row_idx, 0, QtWidgets.QTableWidgetItem(str(member_id)))  # Users (Member_ID)
-            self.Members_Table.setItem(row_idx, 1, QtWidgets.QTableWidgetItem(member_name))  # Username (Member_Name)
-            self.Members_Table.setItem(row_idx, 2, QtWidgets.QTableWidgetItem(str(book_issued)))  # Book Issued (Book Title)
-            self.Members_Table.setItem(row_idx, 3, QtWidgets.QTableWidgetItem(status))  # Status (Member_Status)
+            self.Members_Table.setItem(row_idx, 0, QtWidgets.QTableWidgetItem(str(member_id)))  # Users
+            self.Members_Table.setItem(row_idx, 1, QtWidgets.QTableWidgetItem(member_name))  # Username
+            self.Members_Table.setItem(row_idx, 2, QtWidgets.QTableWidgetItem(str(book_issued)))  # Book Issued
+            self.Members_Table.setItem(row_idx, 3, QtWidgets.QTableWidgetItem(status))  # Status
 
     def block_member(self):
-        """Block the selected member by changing their status to 'Inactive' and update the UI."""
+        # Block the selected member by changing their status to 'Inactive', update UI and database
         selected_row = self.Members_Table.currentRow()
 
         if selected_row != -1:  # If a row is selected
             # Username is used as a unique identification for the query
-            username = self.Members_Table.item(selected_row, 1).text()  # Assuming username is in column 1
-            current_status = self.Members_Table.item(selected_row, 3).text()  # Assuming status is in column 3
+            username = self.Members_Table.item(selected_row, 1).text()
+            current_status = self.Members_Table.item(selected_row, 3).text()
 
             if current_status != "Inactive":
-                # Update the status of the member to 'Inactive' in the database
+
                 query = "UPDATE Member_Info SET Member_Status = ? WHERE Member_Name = ?"
                 self.cursor.execute(query, ('Inactive', username))
-                self.db_connection.get_connection().commit()  # Commit the transaction to the database
+                self.db_connection.get_connection().commit()
 
                 # Update status in the UI (Table)
                 self.Members_Table.item(selected_row, 3).setText("Inactive")
                 QtWidgets.QMessageBox.information(self, "Success", f"Member {username} has been blocked.")
+
             else:
                 QtWidgets.QMessageBox.warning(self, "Error", "This member is already inactive.")
 
