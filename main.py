@@ -752,7 +752,6 @@ class Members(QtWidgets.QMainWindow):
         self.populate_members_table()
 
     def populate_members_table(self):
-        """Fetch data from the database and populate the Members_Table."""
         query = """
         SELECT m.Member_ID, m.Member_Name, m.Member_Password, m.Member_Status, b.Title
         FROM Member_Info m
@@ -779,7 +778,6 @@ class Members(QtWidgets.QMainWindow):
             self.Members_Table.setItem(row_idx, 3, QtWidgets.QTableWidgetItem(status))  # Status (Member_Status)
 
     def block_member(self):
-        """Block the selected member by changing their status to 'Inactive' and update the UI."""
         selected_row = self.Members_Table.currentRow()
 
         if selected_row != -1:  # If a row is selected
@@ -814,7 +812,6 @@ class MemberScreen(QtWidgets.QMainWindow):
         self.searchScreen.show()
     
     def openBookARoom(self):
-        """Open the BookARoom screen."""
         self.bookARoomWindow = BookARoom(self.db)  # Instantiate the BookARoom class
         self.bookARoomWindow.show()  # Show the BookARoom screen
 
@@ -901,7 +898,6 @@ class SearchScreen(QtWidgets.QMainWindow):
                 self.BookTW.setItem(row_index, col_index, item)
 
     def view(self):
-        """View detailed information about the selected book."""
         selected_row = self.BookTW.currentRow()
         if selected_row != -1:  # Check if a row is selected
             book_id = self.BookTW.item(selected_row, 0).text()  # Assuming the first column is the book ID
