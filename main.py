@@ -104,7 +104,7 @@ class CreateAccount(QtWidgets.QMainWindow):
             return
 
         for i in username:
-            if not i.isalpha():
+            if not i.isalpha() and i != " ":
                 show_message(self, "Error", "Username only contains alphabets.")
                 return
         
@@ -206,17 +206,19 @@ class SignIn(QtWidgets.QMainWindow):
 
     def signInAsMember(self, username, password):
         sql_query = """
-            SELECT Member_Password FROM Member_Info WHERE Member_Name = ?
+            SELECT Member_Password, Member_Status FROM Member_Info WHERE Member_Name = ? 
         """
         cursor = self.db.get_cursor()  # Correctly retrieve the cursor here
         try:
             cursor.execute(sql_query, (username,))
             result = cursor.fetchone()
-            
+            print(result, username)
             if result is None:
                 show_message(self, "Error", "No username found")
                 return
-            
+            if result[1] == "Inactive":
+                show_message(self, "Error", "User is blocked")
+                return
             if password != result[0]:
                 show_message(self, "Error", "Incorrect Password")
                 return
@@ -930,7 +932,7 @@ class RateScreen(QMainWindow):
         self.db = db_connection
         self.book_id = book_id
         self.viewAll = viewAll
-        
+
         
         # Set up QButtonGroup for radio buttons (rating)
         self.rating_group = QButtonGroup(self)
