@@ -226,6 +226,7 @@ class SignIn(QtWidgets.QMainWindow):
 
     def openMemberScreen(self): 
         self.memberScreen = MemberScreen(self.usernameF.text(), self.db)  # Pass db to Member screen
+        screens.append(self.memberScreen)
         self.memberScreen.show()
     
 
@@ -251,7 +252,7 @@ class Admin_or_Librarian(QtWidgets.QMainWindow):
         self.Inventory_Button.clicked.connect(self.open_inventory)
         self.Members_Button.clicked.connect(self.open_members)
 
-        self.LogOut_Button.clicked.connect(self.logout)
+        self.LogOut_Button.clicked.connect(self.logout_lib)
 
     def open_inventory(self):
         if self.inventory_window is None:
@@ -265,7 +266,7 @@ class Admin_or_Librarian(QtWidgets.QMainWindow):
             self.members_window = Members(self.db_connection)
         self.members_window.show()
     
-    def logout(self):
+    def logout_lib(self):
         for screen in screens:
             screen.close()
         self.close()
@@ -585,40 +586,40 @@ class Book_Inventory(QtWidgets.QMainWindow):
             self.issued_books_window = QtWidgets.QMainWindow(self)
             uic.loadUi('Issued_book.ui', self.issued_books_window)
 
-            table_widget = self.issued_books_window.findChild(QtWidgets.QTableWidget, 'tableWidget')
+        table_widget = self.issued_books_window.findChild(QtWidgets.QTableWidget, 'tableWidget')
 
-            # Query to fetch issued books data
-            query = """
-            SELECT 
-                b.ISBN,
-                b.Title,
-                m.Member_Name AS Issued_To,
-                ib.Due_Date,
-                ib.Issue_Date,
-                ib.Return_Date
-            FROM 
-                Issued_Books ib
-            INNER JOIN 
-                Books b ON ib.Book_ID = b.Book_ID
-            INNER JOIN 
-                Member_Info m ON ib.Member_ID = m.Member_ID;
-            """
+        # Query to fetch issued books data
+        query = """
+        SELECT 
+            b.ISBN,
+            b.Title,
+            m.Member_Name AS Issued_To,
+            ib.Due_Date,
+            ib.Issue_Date,
+            ib.Return_Date
+        FROM 
+            Issued_Books ib
+        INNER JOIN 
+            Books b ON ib.Book_ID = b.Book_ID
+        INNER JOIN 
+            Member_Info m ON ib.Member_ID = m.Member_ID;
+        """
 
-            cursor = self.db_connection.get_cursor()
-            cursor.execute(query)
-            records = cursor.fetchall()
+        cursor = self.db_connection.get_cursor()
+        cursor.execute(query)
+        records = cursor.fetchall()
 
-            # Populate UI
-            table_widget.setRowCount(0)  # Clear existing rows
-            table_widget.setRowCount(len(records))
-            for row_idx, record in enumerate(records):
-                for col_idx, data in enumerate(record):
-                    item = QtWidgets.QTableWidgetItem(str(data) if data is not None else "")
-                    table_widget.setItem(row_idx, col_idx, item)
+        # Populate UI
+        table_widget.setRowCount(0)  # Clear existing rows
+        table_widget.setRowCount(len(records))
+        for row_idx, record in enumerate(records):
+            for col_idx, data in enumerate(record):
+                item = QtWidgets.QTableWidgetItem(str(data) if data is not None else "")
+                table_widget.setItem(row_idx, col_idx, item)
 
-            table_widget.resizeColumnsToContents()
-            table_widget.setEditTriggers(QtWidgets.QAbstractItemView.EditTrigger.NoEditTriggers)
-            table_widget.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.NoSelection)
+        table_widget.resizeColumnsToContents()
+        table_widget.setEditTriggers(QtWidgets.QAbstractItemView.EditTrigger.NoEditTriggers)
+        table_widget.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.NoSelection)
 
         self.issued_books_window.show()
 
@@ -646,7 +647,7 @@ class Book_Inventory(QtWidgets.QMainWindow):
 
         cursor = self.db_connection.get_cursor()
         find_query = """
-            SELECT Availability FROM Books WHERE ISBN = ? 
+            SELECT Book_ID, Availability FROM Books WHERE ISBN = ? 
         """
         cursor.execute(find_query, (int(book_isbn),))
         result = cursor.fetchone()
@@ -655,30 +656,36 @@ class Book_Inventory(QtWidgets.QMainWindow):
             show_message(self, "Error", "Book not found in the database.")
             return
 
-        availability = result[0]
-        if availability == "Issued":
-            update_query = """
-                UPDATE Books
-                SET Availability = 'Available'
-                WHERE ISBn = ?
-            """
-        else:
-            update_query = """
-                UPDATE Books
-                SET Availability = 'Issued'
-                WHERE ISBN = ?
-            """
+        book_id, availability = result
+        if availability == "Available":
+            show_message(self, "Info", "Book is already marked as available.")
+            return
 
-        # Execute the update query
+        # Get the current date
+        current_date = QDate.currentDate().toString("yyyy-MM-dd")
+
+        # Updat book to "Available" in Books table
+        update_query = """
+            UPDATE Books
+            SET Availability = 'Available'
+            WHERE ISBN = ?
+        """
         cursor.execute(update_query, (book_isbn,))
+
+        # Update the return_date in Issued_Books table to current date
+        update_return_date_query = """
+            UPDATE Issued_Books
+            SET Return_Date = ?
+            WHERE Book_ID = ?
+        """
+        cursor.execute(update_return_date_query, (current_date, book_id))
+
         self.db_connection.get_connection().commit()
 
         # Refresh the table
         self.populate_books_table()
         show_message(self, "Success", "Book inventory updated successfully.")
 
-
-        
 
 class AddBookScreen(QtWidgets.QMainWindow):
     def __init__(self, db_connection: DatabaseConnection, librarian_id, parent=None):
@@ -772,10 +779,10 @@ class Members(QtWidgets.QMainWindow):
             status = row[3]
             book_issued = row[4] if row[4] else 'None'  # If no book issued, display 'None'
 
-            self.Members_Table.setItem(row_idx, 0, QtWidgets.QTableWidgetItem(str(member_id)))  # Users (Member_ID)
-            self.Members_Table.setItem(row_idx, 1, QtWidgets.QTableWidgetItem(member_name))  # Username (Member_Name)
-            self.Members_Table.setItem(row_idx, 2, QtWidgets.QTableWidgetItem(str(book_issued)))  # Book Issued (Book Title)
-            self.Members_Table.setItem(row_idx, 3, QtWidgets.QTableWidgetItem(status))  # Status (Member_Status)
+            self.Members_Table.setItem(row_idx, 0, QtWidgets.QTableWidgetItem(str(member_id)))  # Users
+            self.Members_Table.setItem(row_idx, 1, QtWidgets.QTableWidgetItem(member_name))  # Username
+            self.Members_Table.setItem(row_idx, 2, QtWidgets.QTableWidgetItem(str(book_issued)))  # Book Title
+            self.Members_Table.setItem(row_idx, 3, QtWidgets.QTableWidgetItem(status))  # Member_Status
 
     def block_member(self):
         selected_row = self.Members_Table.currentRow()
@@ -807,6 +814,7 @@ class MemberScreen(QtWidgets.QMainWindow):
         self.db = db
         self.SearchIssue_Button.clicked.connect(lambda: self.openSearchScreen(username))
         self.BookRoom_Button.clicked.connect(lambda: self.openBookARoom())
+        self.LogoutPB.clicked.connect(self.logout_mem)
     def openSearchScreen(self, username):
         self.searchScreen = SearchScreen(username)
         self.searchScreen.show()
@@ -815,9 +823,10 @@ class MemberScreen(QtWidgets.QMainWindow):
         self.bookARoomWindow = BookARoom(self.db)  # Instantiate the BookARoom class
         self.bookARoomWindow.show()  # Show the BookARoom screen
 
-    def logout(self):
+    def logout_mem(self):
+        for screen in screens:
+            screen.close()
         self.close()
-        self.parent().logout()
 
 class SearchScreen(QtWidgets.QMainWindow):
     def __init__(self, username):
@@ -848,8 +857,6 @@ class SearchScreen(QtWidgets.QMainWindow):
         self.RateABookPB.clicked.connect(self.rateABook)
         self.ViewAllPB.clicked.connect(self.viewAll)
         self.IssuePB.clicked.connect(lambda: self.issue(username))
-
-        self.LogoutPB.clicked.connect(self.loggingOut)
 
     def search(self):
         sqlQuery = "select Book_ID, ISBN, Title, Genre, Author, Rating, Availability from Books" 
@@ -905,7 +912,7 @@ class SearchScreen(QtWidgets.QMainWindow):
             book_details = self.cursor.fetchone()
             if book_details:
                 # Show the details in a message box or separate window
-                details = f"ID: {book_details[0]}\nTitle: {book_details[1]}\nAuthor: {book_details[2]}\nGenre: {book_details[3]}\nAuthor: {book_details[4]}\nAvailability: {book_details[5]}"
+                details = f"ID: {book_details[0]}\nTitle: {book_details[2]}\nAuthor: {book_details[4]}\nGenre: {book_details[3]}\nAvailability: {book_details[6]}"
                 show_message(self, "Book Details", details)
             else:
                 show_message(self, "Warning", "Please select a book to view details.")
@@ -928,15 +935,11 @@ class SearchScreen(QtWidgets.QMainWindow):
             """, (user_id, book_id))
                 self.db.get_connection().commit()
                 show_message(self, "Success", "Book issued successfully!")
-                self.BookTW.item(selected_row, 4).setText("Issued")  # Update status in UI
+                self.BookTW.item(selected_row, 6).setText("Issued")  # Update status in UI
             else:
                 show_message(self, "Warning", "The selected book is not available for issuing.")
         else:
             show_message(self, "Warning", "Please select a book to issue.")
-    def loggingOut(self):
-        for screen in screens:
-            screen.close()
-        self.close()
 
 
     def rateABook(self):

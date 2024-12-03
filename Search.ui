@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>665</width>
-    <height>548</height>
+    <width>648</width>
+    <height>511</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -38,19 +38,6 @@
     </property>
     <property name="text">
      <string>ViewAll</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="LogoutPB">
-    <property name="geometry">
-     <rect>
-      <x>550</x>
-      <y>480</y>
-      <width>56</width>
-      <height>31</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Logout</string>
     </property>
    </widget>
    <widget class="QTableWidget" name="BookTW">
@@ -240,7 +227,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>665</width>
+     <width>648</width>
      <height>18</height>
     </rect>
    </property>
